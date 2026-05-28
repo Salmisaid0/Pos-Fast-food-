@@ -1,0 +1,12 @@
+{
+  "name": "@apps/workers",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p ../../tsconfig.json --noEmit",
+    "dev": "echo \"workers dev placeholder (NestJS scaffold pending)\"",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc -p ../../tsconfig.json --noEmit",
+    "test": "echo \"no tests in app yet\""
+  }
+}
