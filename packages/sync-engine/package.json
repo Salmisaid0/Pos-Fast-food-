@@ -1,0 +1,12 @@
+{
+  "name": "@packages/sync-engine",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc -p ../../tsconfig.json --noEmit",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc -p ../../tsconfig.json --noEmit",
+    "test": "echo \"no tests in package yet\""
+  }
+}
