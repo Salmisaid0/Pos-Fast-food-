@@ -1,0 +1,22 @@
+{
+  "name": "@apps/api",
+  "version": "0.1.0",
+  "private": true,
+  "main": "../../../dist/apps/api/index.js",
+  "types": "../../../dist/apps/api/index.d.ts",
+  "dependencies": {
+    "@nestjs/common": "^11.1.24",
+    "@nestjs/core": "^11.1.24",
+    "@nestjs/platform-express": "^11.1.24",
+    "@packages/shared-types": "file:../../packages/shared-types",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "node ../../../dist/apps/api/main.js",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc -b --pretty false",
+    "test": "echo \"api covered by root smoke tests\""
+  }
+}
