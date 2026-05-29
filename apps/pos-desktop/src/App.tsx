@@ -151,7 +151,7 @@ export function App(): ReactElement {
   }
 
   return (
-    <main className="pos-shell">
+    <main className="pos-shell" data-pos-screen="cashier">
       <section className="catalog-panel" aria-labelledby="catalog-heading">
         <header>
           <p className="eyebrow">Single branch · Cash only · Offline first</p>

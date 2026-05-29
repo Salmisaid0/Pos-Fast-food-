@@ -64,3 +64,11 @@ export {
   type PosOutboxSyncSnapshot,
   type PosOutboxSyncStatus,
 } from "./pos-sync";
+export {
+  POS_ERROR_BOUNDARY_OPERATOR_MESSAGE,
+  POS_ERROR_BOUNDARY_TITLE,
+  PosErrorBoundary,
+  createPosErrorBoundaryMessage,
+  type PosErrorBoundaryProps,
+  type PosErrorBoundaryState,
+} from "./ErrorBoundary";

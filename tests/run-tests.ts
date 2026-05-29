@@ -34,6 +34,9 @@ import {
   loadLocalSalesSnapshot,
   LocalBrowserSaleRepositories,
   LocalJsonSaleRepositories,
+  POS_ERROR_BOUNDARY_OPERATOR_MESSAGE,
+  POS_ERROR_BOUNDARY_TITLE,
+  createPosErrorBoundaryMessage,
   resolveLocalStoreTarget,
   seedProducts,
   toFiscalReceiptInputLines,
@@ -149,6 +152,28 @@ const fiscalInput: FiscalReceiptInput = {
     },
   ],
 };
+
+async function testPosErrorBoundaryMessage(): Promise<void> {
+  const message = createPosErrorBoundaryMessage(new Error("render failed"));
+  const fallbackMessage = createPosErrorBoundaryMessage(new Error(""));
+
+  assert(
+    POS_ERROR_BOUNDARY_TITLE === "POS screen needs attention",
+    "POS error boundary should expose a cashier-safe title"
+  );
+  assert(
+    message.includes("Please reload the POS") && message.includes("call the manager"),
+    "POS error boundary should tell cashier to reload and call manager"
+  );
+  assert(
+    message.includes("render failed"),
+    "POS error boundary should keep technical detail for support"
+  );
+  assert(
+    fallbackMessage === POS_ERROR_BOUNDARY_OPERATOR_MESSAGE,
+    "POS error boundary should use safe fallback when no technical detail exists"
+  );
+}
 
 async function testCashCalculation(): Promise<void> {
   const payment = calculateCashPayment({
@@ -1767,6 +1792,7 @@ async function testFlushOutbox(): Promise<void> {
 }
 
 async function main(): Promise<void> {
+  await testPosErrorBoundaryMessage();
   await testCashCalculation();
   await testPosCatalogFiltering();
   await testPosCartStateBuildsFiscalLines();

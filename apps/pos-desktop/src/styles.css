@@ -337,3 +337,48 @@ input {
   border-color: #bfdbfe;
   background: #eff6ff;
 }
+
+.error-boundary-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, #111827, #7f1d1d);
+}
+
+.error-boundary-card {
+  max-width: 680px;
+  border-radius: 28px;
+  padding: 2rem;
+  background: #fff7ed;
+  color: #1f2937;
+  box-shadow: 0 24px 80px rgb(0 0 0 / 35%);
+}
+
+.error-boundary-card h1 {
+  margin: 0.4rem 0 1rem;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+}
+
+.error-boundary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.error-boundary-actions button {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.8rem 1.2rem;
+  background: #b91c1c;
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.error-boundary-actions span {
+  color: #7c2d12;
+  font-weight: 700;
+}
