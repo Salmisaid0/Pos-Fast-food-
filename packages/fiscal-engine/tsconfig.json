@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "../../dist/packages/fiscal-engine",
+    "tsBuildInfoFile": "../../dist/packages/fiscal-engine/tsconfig.tsbuildinfo"
+  },
+  "references": [
+    {
+      "path": "../shared-types"
+    }
+  ],
+  "include": ["src/**/*.ts"]
+}
