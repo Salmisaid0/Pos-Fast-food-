@@ -10,6 +10,12 @@ import {
   InMemoryLocalSaleRepositories,
 } from "@apps/pos-desktop";
 import {
+  InMemoryPrintJobRepository,
+  processPrintJob,
+  RecordingPrinterTransport,
+  type PrinterTransport,
+} from "@apps/workers";
+import {
   calculateReceipt,
   FISCAL_ENGINE_VERSION,
   InvalidFiscalInputError,
@@ -31,6 +37,7 @@ import type {
   OrderId,
   PaymentId,
   PrinterId,
+  PrinterJob,
   PrinterJobId,
   ProductCategory,
   ProductCategoryId,
@@ -318,6 +325,85 @@ async function testApiSyncRejectsInvalidAggregate(): Promise<void> {
   );
 }
 
+async function testWorkerProcessesPrintJobSuccessfully(): Promise<void> {
+  const localRepositories = new InMemoryLocalSaleRepositories();
+  const sale = await finalizeCashSale(
+    {
+      orderId,
+      paymentId,
+      receiptId,
+      receiptNumber,
+      localSequence: 5,
+      items: fiscalInput.lines,
+      receivedDZD: 1200,
+      finalizedAt: now,
+      printer: {
+        printerJobId,
+        targetPrinterId: printerId,
+      },
+    },
+    localRepositories
+  );
+
+  if (!sale.printerJob) throw new Error("Sale should include a printer job");
+
+  const repository = new InMemoryPrintJobRepository();
+  const transport = new RecordingPrinterTransport();
+  const result = await processPrintJob(sale.printerJob, repository, transport, { now });
+  const savedJob = await repository.getById(sale.printerJob.id);
+
+  assert(result.ok === true, "Print worker should mark successful print job as ok");
+  assert(savedJob?.status === "SENT", "Successful print job should be marked sent");
+  assert(savedJob?.attemptCount === 1, "Successful print job should increment attempt count");
+  assert(transport.sentJobs.length === 1, "Printer transport should receive one job");
+}
+
+async function testWorkerMarksFailedAndDeadLetterPrintJobs(): Promise<void> {
+  const receipt = calculateReceipt(fiscalInput);
+  const baseJob: PrinterJob = {
+    id: printerJobId,
+    orderId,
+    receiptId,
+    type: "RECEIPT",
+    targetPrinterId: printerId,
+    payload: receipt,
+    status: "QUEUED",
+    attemptCount: 0,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const failingTransport: PrinterTransport = {
+    async send() {
+      throw new Error("printer offline");
+    },
+  };
+
+  const repository = new InMemoryPrintJobRepository();
+  const firstResult = await processPrintJob(baseJob, repository, failingTransport, {
+    now,
+    maxAttempts: 2,
+  });
+  const firstSavedJob = await repository.getById(baseJob.id);
+
+  assert(firstResult.ok === false, "Failed print job should return a failed result");
+  assert(firstResult.status === "FAILED", "First failed attempt should remain retryable");
+  assert(firstSavedJob?.status === "FAILED", "Repository should save retryable failed status");
+  assert(firstSavedJob?.attemptCount === 1, "Failed print job should increment attempt count");
+  assert(firstSavedJob?.lastError === "printer offline", "Failed print job should keep last error");
+
+  const secondResult = await processPrintJob(firstSavedJob!, repository, failingTransport, {
+    now,
+    maxAttempts: 2,
+  });
+  const secondSavedJob = await repository.getById(baseJob.id);
+
+  assert(secondResult.ok === false, "Second failed print job should return a failed result");
+  assert(secondResult.status === "DEAD_LETTERED", "Max attempts should dead-letter print job");
+  assert(secondSavedJob?.status === "DEAD_LETTERED", "Repository should save dead-letter status");
+  assert(secondSavedJob?.attemptCount === 2, "Dead-lettered print job should record final attempt");
+}
+
 async function testFlushOutboxHandlesFailureAndRetry(): Promise<void> {
   const repositories = new InMemoryLocalSaleRepositories();
   const sale = await finalizeCashSale(
@@ -469,6 +555,8 @@ async function main(): Promise<void> {
   await testIdempotencyGuard();
   await testApiSyncIngestionPersistsSaleEvents();
   await testApiSyncRejectsInvalidAggregate();
+  await testWorkerProcessesPrintJobSuccessfully();
+  await testWorkerMarksFailedAndDeadLetterPrintJobs();
   await testFlushOutboxHandlesFailureAndRetry();
   await testFlushOutboxCanPushToApiIngestion();
   await testFlushOutbox();

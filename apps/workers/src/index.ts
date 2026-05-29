@@ -1,1 +1,9 @@
-export { processPrintJob } from "./print-job";
+export {
+  InMemoryPrintJobRepository,
+  processPrintJob,
+  RecordingPrinterTransport,
+  type PrinterTransport,
+  type PrintJobRepository,
+  type ProcessPrintJobOptions,
+  type ProcessPrintJobResult,
+} from "./print-job";
