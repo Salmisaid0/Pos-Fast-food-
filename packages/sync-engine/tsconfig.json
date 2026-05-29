@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "../../dist/packages/sync-engine",
+    "tsBuildInfoFile": "../../dist/packages/sync-engine/tsconfig.tsbuildinfo"
+  },
+  "references": [
+    {
+      "path": "../shared-types"
+    }
+  ],
+  "include": ["src/**/*.ts"]
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@apps/pos-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "main": "../../../dist/apps/pos-desktop/index.js",
+  "types": "../../../dist/apps/pos-desktop/index.d.ts",
+  "dependencies": {
+    "@packages/fiscal-engine": "file:../../packages/fiscal-engine",
+    "@packages/shared-types": "file:../../packages/shared-types",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "vite --host 0.0.0.0",
+    "lint": "eslint src --ext .ts,.tsx",
+    "typecheck": "tsc -b --pretty false",
+    "test": "echo \"pos-desktop covered by root smoke tests\""
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "vite": "^8.0.14"
+  }
+}
