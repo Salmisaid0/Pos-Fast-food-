@@ -1,0 +1,18 @@
+{
+  "name": "@apps/workers",
+  "version": "0.1.0",
+  "private": true,
+  "main": "../../../dist/apps/workers/index.js",
+  "types": "../../../dist/apps/workers/index.d.ts",
+  "dependencies": {
+    "@packages/shared-types": "file:../../packages/shared-types",
+    "ioredis": "^5.11.0"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "echo \"workers dev placeholder (NestJS scaffold pending)\"",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc -b --pretty false",
+    "test": "echo \"workers covered by root smoke tests\""
+  }
+}
