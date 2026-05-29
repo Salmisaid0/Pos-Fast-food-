@@ -1,0 +1,29 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "../dist/tests",
+    "tsBuildInfoFile": "../dist/tests/tsconfig.tsbuildinfo"
+  },
+  "references": [
+    {
+      "path": "../packages/shared-types"
+    },
+    {
+      "path": "../packages/fiscal-engine"
+    },
+    {
+      "path": "../packages/sync-engine"
+    },
+    {
+      "path": "../apps/api"
+    },
+    {
+      "path": "../apps/pos-desktop"
+    },
+    {
+      "path": "../apps/workers"
+    }
+  ],
+  "include": ["**/*.ts"]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "@apps/pos-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "main": "../../../dist/apps/pos-desktop/index.js",
+  "types": "../../../dist/apps/pos-desktop/index.d.ts",
+  "dependencies": {
+    "@packages/shared-types": "file:../../packages/shared-types"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "echo \"pos-desktop dev placeholder (Tauri+React scaffold pending)\"",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc -b --pretty false",
+    "test": "echo \"pos-desktop covered by root smoke tests\""
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "@apps/api",
+  "version": "0.1.0",
+  "private": true,
+  "main": "../../../dist/apps/api/index.js",
+  "types": "../../../dist/apps/api/index.d.ts",
+  "dependencies": {
+    "@packages/shared-types": "file:../../packages/shared-types"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "echo \"api dev placeholder (NestJS scaffold pending)\"",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc -b --pretty false",
+    "test": "echo \"api covered by root smoke tests\""
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "composite": true,
+    "baseUrl": ".",
+    "paths": {
+      "@packages/shared-types": ["packages/shared-types/src"],
+      "@packages/fiscal-engine": ["packages/fiscal-engine/src"],
+      "@packages/sync-engine": ["packages/sync-engine/src"],
+      "@apps/api": ["apps/api/src"],
+      "@apps/pos-desktop": ["apps/pos-desktop/src"],
+      "@apps/workers": ["apps/workers/src"]
+    }
+  }
+}

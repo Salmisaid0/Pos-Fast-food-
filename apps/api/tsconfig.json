@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "../../dist/apps/api",
+    "tsBuildInfoFile": "../../dist/apps/api/tsconfig.tsbuildinfo"
+  },
+  "references": [
+    {
+      "path": "../../packages/shared-types"
+    }
+  ],
+  "include": ["src/**/*.ts"]
+}
