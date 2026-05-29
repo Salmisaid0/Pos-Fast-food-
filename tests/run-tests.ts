@@ -16,7 +16,12 @@ import {
   InvalidReceiptLineError,
   UnsupportedVatRateError,
 } from "@packages/fiscal-engine";
-import { flushOutbox, type LocalOutboxRepository, type RemoteSyncApi } from "@packages/sync-engine";
+import {
+  flushOutbox,
+  flushOutboxDetailed,
+  type LocalOutboxRepository,
+  type RemoteSyncApi,
+} from "@packages/sync-engine";
 import type {
   EntityId,
   FiscalReceiptInput,
@@ -313,6 +318,107 @@ async function testApiSyncRejectsInvalidAggregate(): Promise<void> {
   );
 }
 
+async function testFlushOutboxHandlesFailureAndRetry(): Promise<void> {
+  const repositories = new InMemoryLocalSaleRepositories();
+  const sale = await finalizeCashSale(
+    {
+      orderId,
+      paymentId,
+      receiptId,
+      receiptNumber,
+      localSequence: 3,
+      items: fiscalInput.lines,
+      receivedDZD: 1200,
+      finalizedAt: now,
+    },
+    repositories
+  );
+
+  const failingEventId = sale.syncEvents[0]!.id;
+  let shouldFailFirstEvent = true;
+  const pushed = new Set<string>();
+
+  const flakyApi: RemoteSyncApi = {
+    async pushEvent(event: SyncEvent) {
+      if (event.id === failingEventId && shouldFailFirstEvent) {
+        shouldFailFirstEvent = false;
+        throw new Error("temporary api outage");
+      }
+
+      pushed.add(event.id);
+    },
+  };
+
+  const firstFlush = await flushOutboxDetailed(repositories.outbox, flakyApi, 50);
+  assert(
+    firstFlush.attemptedCount === sale.syncEvents.length,
+    "First flush should attempt all events"
+  );
+  assert(firstFlush.failedCount === 1, "First flush should record one failed event");
+  assert(
+    firstFlush.syncedCount === sale.syncEvents.length - 1,
+    "First flush should sync non-failing events"
+  );
+
+  const entriesAfterFailure = await repositories.outbox.listEntries();
+  const failedEntry = entriesAfterFailure.find((entry) => entry.event.id === failingEventId);
+  if (!failedEntry) throw new Error("Failed event should exist in local outbox");
+  assert(failedEntry.status === "FAILED", "Failed event should be marked failed");
+  assert(failedEntry.event.attemptCount === 1, "Failed event attempt count should increment");
+  assert(failedEntry.lastError === "temporary api outage", "Failed event should keep last error");
+
+  const secondFlush = await flushOutboxDetailed(repositories.outbox, flakyApi, 50);
+  assert(secondFlush.attemptedCount === 1, "Second flush should retry only failed event");
+  assert(secondFlush.syncedCount === 1, "Second flush should sync retried event");
+  assert(secondFlush.failedCount === 0, "Second flush should not fail after API recovers");
+  assert(pushed.has(failingEventId), "Recovered flush should push failed event");
+
+  const entriesAfterRetry = await repositories.outbox.listEntries();
+  assert(
+    entriesAfterRetry.every((entry) => entry.status === "SYNCED"),
+    "All entries should be synced after retry"
+  );
+}
+
+async function testFlushOutboxCanPushToApiIngestion(): Promise<void> {
+  const localRepositories = new InMemoryLocalSaleRepositories();
+  const apiRepository = new InMemorySyncIngestionRepository();
+  const sale = await finalizeCashSale(
+    {
+      orderId,
+      paymentId,
+      receiptId,
+      receiptNumber,
+      localSequence: 4,
+      items: fiscalInput.lines,
+      receivedDZD: 1200,
+      finalizedAt: now,
+    },
+    localRepositories
+  );
+
+  const api: RemoteSyncApi = {
+    async pushEvent(event: SyncEvent) {
+      const result = await ingestSyncEvent(event, apiRepository);
+      if (!result.accepted) throw new Error(result.reason);
+    },
+  };
+
+  const syncedCount = await flushOutbox(localRepositories.outbox, api, 50);
+  assert(
+    syncedCount === sale.syncEvents.length,
+    "Flush should sync every local sale event to API ingestion"
+  );
+  assert(
+    (await apiRepository.getOrder(orderId))?.id === orderId,
+    "Flush should persist order via API ingestion"
+  );
+  assert(
+    (await apiRepository.getCashPayment(paymentId))?.id === paymentId,
+    "Flush should persist payment via API ingestion"
+  );
+}
+
 async function testFlushOutbox(): Promise<void> {
   const receipt = calculateReceipt(fiscalInput);
   const pending: SyncEvent[] = [
@@ -338,6 +444,9 @@ async function testFlushOutbox(): Promise<void> {
     async markSynced(eventId: string) {
       synced.add(eventId);
     },
+    async markFailed() {
+      throw new Error("markFailed should not be called in successful flush test");
+    },
   };
 
   const api: RemoteSyncApi = {
@@ -360,6 +469,8 @@ async function main(): Promise<void> {
   await testIdempotencyGuard();
   await testApiSyncIngestionPersistsSaleEvents();
   await testApiSyncRejectsInvalidAggregate();
+  await testFlushOutboxHandlesFailureAndRetry();
+  await testFlushOutboxCanPushToApiIngestion();
   await testFlushOutbox();
   console.log("All tests passed.");
 }

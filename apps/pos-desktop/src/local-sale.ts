@@ -40,6 +40,7 @@ export interface LocalSaleOutboxRepository {
   enqueue(event: SyncEvent): Promise<void>;
   listPending(limit: number): Promise<SyncEvent[]>;
   markSynced(eventId: string, syncedAt?: IsoDateTimeString): Promise<void>;
+  markFailed(eventId: string, error: Error, failedAt?: IsoDateTimeString): Promise<void>;
   listEntries(): Promise<LocalOutboxEntry[]>;
 }
 
@@ -185,7 +186,7 @@ class InMemoryOutboxRepository implements LocalSaleOutboxRepository {
 
   async listPending(limit: number): Promise<SyncEvent[]> {
     return [...this.entries.values()]
-      .filter((entry) => entry.status === "PENDING")
+      .filter((entry) => entry.status === "PENDING" || entry.status === "FAILED")
       .slice(0, limit)
       .map((entry) => entry.event);
   }
@@ -198,6 +199,24 @@ class InMemoryOutboxRepository implements LocalSaleOutboxRepository {
       ...entry,
       status: "SYNCED",
       syncedAt: syncedAt ?? (new Date().toISOString() as IsoDateTimeString),
+    });
+  }
+
+  async markFailed(eventId: string, error: Error, failedAt?: IsoDateTimeString): Promise<void> {
+    const entry = this.entries.get(eventId);
+    if (!entry) return;
+
+    const lastAttemptAt = failedAt ?? (new Date().toISOString() as IsoDateTimeString);
+
+    this.entries.set(eventId, {
+      ...entry,
+      event: {
+        ...entry.event,
+        attemptCount: entry.event.attemptCount + 1,
+        lastAttemptAt,
+      },
+      status: "FAILED",
+      lastError: error.message,
     });
   }
 
