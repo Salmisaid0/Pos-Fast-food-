@@ -70,6 +70,14 @@ class LocalJsonOrderRepository implements LocalOrderRepository {
     const store = await this.storage.readStore();
     return store.orders.find((order) => order.id === orderId);
   }
+
+  async listRecent(limit: number): Promise<Order[]> {
+    const store = await this.storage.readStore();
+    return store.orders
+      .slice()
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+      .slice(0, limit);
+  }
 }
 
 class LocalJsonPaymentRepository implements LocalPaymentRepository {

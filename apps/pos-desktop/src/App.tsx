@@ -1,6 +1,8 @@
-import { useMemo, useState, type ReactElement } from "react";
+import { useEffect, useMemo, useState, type ReactElement } from "react";
 
-import { seedProducts } from "./features/catalog/seed-catalog";
+import type { ProductCategoryId } from "@packages/shared-types";
+import type { IsoDateTimeString } from "@packages/shared-types";
+
 import {
   addProductToCart,
   calculateCartSummary,
@@ -10,21 +12,68 @@ import {
   removeCartLine,
   type CartState,
 } from "./features/cart/cart-state";
+import {
+  filterActiveProducts,
+  seedCategories,
+  seedProducts,
+} from "./features/catalog/seed-catalog";
 import { buildCashCheckoutState, finalizeCartCashSale } from "./features/checkout/checkout-state";
-import { InMemoryLocalSaleRepositories } from "./local-sale";
-import type { IsoDateTimeString } from "@packages/shared-types";
+import {
+  createReceiptNumberPreview,
+  formatSaleTimestamp,
+  loadLocalSalesSnapshot,
+  type LocalSalesSnapshot,
+} from "./features/sales/recent-sales";
+import { createDefaultLocalSaleRepositories } from "./local-repository-factory";
 
-const repositories = new InMemoryLocalSaleRepositories();
+const repositories = createDefaultLocalSaleRepositories();
+const allCategories = "ALL";
+const cashDigits = ["7", "8", "9", "4", "5", "6", "1", "2", "3", "0"];
 
 export function App(): ReactElement {
   const [cart, setCart] = useState<CartState>(() => createEmptyCart());
   const [receivedDZD, setReceivedDZD] = useState(0);
   const [localSequence, setLocalSequence] = useState(1);
   const [saleStatus, setSaleStatus] = useState("No sale finalized yet.");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<
+    ProductCategoryId | typeof allCategories
+  >(allCategories);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isConfirmingSale, setIsConfirmingSale] = useState(false);
+  const [salesSnapshot, setSalesSnapshot] = useState<LocalSalesSnapshot>({
+    recentSales: [],
+    pendingSyncCount: 0,
+    failedSyncCount: 0,
+    nextLocalSequence: 1,
+  });
   const summary = useMemo(() => calculateCartSummary(cart), [cart]);
   const checkout = useMemo(() => buildCashCheckoutState(cart, receivedDZD), [cart, receivedDZD]);
+  const receiptNumberPreview = createReceiptNumberPreview(localSequence);
+  const filteredProducts = useMemo(
+    () =>
+      filterActiveProducts(seedProducts, {
+        categoryId: selectedCategoryId === allCategories ? undefined : selectedCategoryId,
+        searchTerm,
+      }),
+    [searchTerm, selectedCategoryId]
+  );
+
+  useEffect(() => {
+    void refreshLocalSales();
+  }, []);
+
+  async function refreshLocalSales(): Promise<void> {
+    const snapshot = await loadLocalSalesSnapshot(repositories, 5);
+    setSalesSnapshot(snapshot);
+    setLocalSequence(snapshot.nextLocalSequence);
+  }
 
   async function finalizeSale(): Promise<void> {
+    if (!isConfirmingSale) {
+      setIsConfirmingSale(true);
+      return;
+    }
+
     const sale = await finalizeCartCashSale({
       cart,
       receivedDZD,
@@ -36,9 +85,28 @@ export function App(): ReactElement {
     setSaleStatus(
       `Sale ${sale.order.localSequence} saved locally with ${sale.syncEvents.length} pending sync events.`
     );
-    setLocalSequence((sequence) => sequence + 1);
     setReceivedDZD(0);
     setCart(clearCart());
+    setIsConfirmingSale(false);
+    await refreshLocalSales();
+  }
+
+  function appendCashDigit(digit: string): void {
+    setReceivedDZD((currentValue) => Number(`${currentValue === 0 ? "" : currentValue}${digit}`));
+  }
+
+  function backspaceCashDigit(): void {
+    setReceivedDZD((currentValue) => Math.floor(currentValue / 10));
+  }
+
+  function addQuickCash(amountDZD: number): void {
+    setReceivedDZD((currentValue) => currentValue + amountDZD);
+  }
+
+  function resetCart(): void {
+    setCart(clearCart());
+    setReceivedDZD(0);
+    setIsConfirmingSale(false);
   }
 
   return (
@@ -48,23 +116,95 @@ export function App(): ReactElement {
           <p className="eyebrow">Single branch · Cash only · Offline first</p>
           <h1 id="catalog-heading">Fast Food POS</h1>
         </header>
-        <div className="product-grid">
-          {seedProducts.map((product) => (
+
+        <div className="catalog-toolbar">
+          <label>
+            Search products
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Burger, cola, SKU..."
+            />
+          </label>
+          <div className="category-filters" aria-label="Product categories">
             <button
-              className="product-card"
-              key={product.id}
+              className={selectedCategoryId === allCategories ? "selected" : ""}
               type="button"
-              onClick={() => setCart((currentCart) => addProductToCart(currentCart, product))}
+              onClick={() => setSelectedCategoryId(allCategories)}
             >
-              <span>{product.name}</span>
-              <strong>{product.priceDZD} DZD</strong>
+              All
             </button>
-          ))}
+            {seedCategories
+              .filter((category) => category.isActive)
+              .map((category) => (
+                <button
+                  className={selectedCategoryId === category.id ? "selected" : ""}
+                  key={category.id}
+                  type="button"
+                  onClick={() => setSelectedCategoryId(category.id)}
+                >
+                  {category.name}
+                </button>
+              ))}
+          </div>
         </div>
+
+        {filteredProducts.length === 0 ? (
+          <p className="empty-state light">No active products match this filter.</p>
+        ) : (
+          <div className="product-grid">
+            {filteredProducts.map((product) => (
+              <button
+                className="product-card"
+                key={product.id}
+                type="button"
+                onClick={() => {
+                  setCart((currentCart) => addProductToCart(currentCart, product));
+                  setIsConfirmingSale(false);
+                }}
+              >
+                <span>{product.name}</span>
+                <small>{product.sku}</small>
+                <strong>{product.priceDZD} DZD</strong>
+              </button>
+            ))}
+          </div>
+        )}
+
+        <section className="recent-sales" aria-labelledby="recent-sales-heading">
+          <div className="section-title-row">
+            <h2 id="recent-sales-heading">Recent local sales</h2>
+            <span>{salesSnapshot.pendingSyncCount} pending sync</span>
+          </div>
+          {salesSnapshot.recentSales.length === 0 ? (
+            <p className="empty-state light">No local sales yet.</p>
+          ) : (
+            <ul>
+              {salesSnapshot.recentSales.map((sale) => (
+                <li key={sale.order.id}>
+                  <strong>
+                    {sale.receipt?.receiptNumber ?? `Sale ${sale.order.localSequence}`}
+                  </strong>
+                  <span>{sale.receipt?.totalDZD ?? sale.order.totalDZD} DZD</span>
+                  <small>
+                    {sale.order.status} · {formatSaleTimestamp(sale.order.createdAt)} ·{" "}
+                    {sale.pendingSyncCount} pending
+                  </small>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </section>
 
       <aside className="checkout-panel" aria-labelledby="cart-heading">
-        <h2 id="cart-heading">Cart</h2>
+        <div className="section-title-row inverted">
+          <h2 id="cart-heading">Cart</h2>
+          <button disabled={cart.lines.length === 0} type="button" onClick={resetCart}>
+            Clear
+          </button>
+        </div>
         {cart.lines.length === 0 ? (
           <p className="empty-state">Add products to start a sale.</p>
         ) : (
@@ -74,23 +214,35 @@ export function App(): ReactElement {
                 <div>
                   <strong>{line.product.name}</strong>
                   <span>
-                    {line.quantity} × {line.product.priceDZD} DZD
+                    {line.quantity} × {line.product.priceDZD} DZD ={" "}
+                    {line.quantity * line.product.priceDZD} DZD
                   </span>
                 </div>
                 <div className="line-actions">
                   <button
                     type="button"
-                    onClick={() =>
-                      setCart((currentCart) => decrementCartLine(currentCart, line.product.id))
-                    }
+                    onClick={() => {
+                      setCart((currentCart) => decrementCartLine(currentCart, line.product.id));
+                      setIsConfirmingSale(false);
+                    }}
                   >
                     −
                   </button>
                   <button
                     type="button"
-                    onClick={() =>
-                      setCart((currentCart) => removeCartLine(currentCart, line.product.id))
-                    }
+                    onClick={() => {
+                      setCart((currentCart) => addProductToCart(currentCart, line.product));
+                      setIsConfirmingSale(false);
+                    }}
+                  >
+                    +
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCart((currentCart) => removeCartLine(currentCart, line.product.id));
+                      setIsConfirmingSale(false);
+                    }}
                   >
                     Remove
                   </button>
@@ -114,13 +266,76 @@ export function App(): ReactElement {
             inputMode="numeric"
             type="number"
             value={receivedDZD}
-            onChange={(event) => setReceivedDZD(Number(event.target.value))}
+            onChange={(event) => {
+              setReceivedDZD(Number(event.target.value));
+              setIsConfirmingSale(false);
+            }}
           />
         </label>
 
-        <section className="change-box" aria-live="polite">
+        <div className="quick-cash-actions" aria-label="Quick cash buttons">
+          <button type="button" onClick={() => setReceivedDZD(summary.totalDZD)}>
+            Exact
+          </button>
+          <button type="button" onClick={() => addQuickCash(100)}>
+            +100
+          </button>
+          <button type="button" onClick={() => addQuickCash(200)}>
+            +200
+          </button>
+          <button type="button" onClick={() => addQuickCash(500)}>
+            +500
+          </button>
+        </div>
+
+        <div className="numeric-keypad" aria-label="Numeric keypad">
+          {cashDigits.map((digit) => (
+            <button key={digit} type="button" onClick={() => appendCashDigit(digit)}>
+              {digit}
+            </button>
+          ))}
+          <button type="button" onClick={backspaceCashDigit}>
+            ⌫
+          </button>
+          <button type="button" onClick={() => setReceivedDZD(0)}>
+            C
+          </button>
+        </div>
+
+        <section className={`change-box ${checkout.status.toLowerCase()}`} aria-live="polite">
           <span>{checkout.message}</span>
           <strong>Change: {checkout.changeDZD} DZD</strong>
+        </section>
+
+        <section className="receipt-preview" aria-label="Receipt preview">
+          <h3>Receipt preview</h3>
+          <p>{receiptNumberPreview}</p>
+          {cart.lines.length === 0 ? (
+            <span>No items yet.</span>
+          ) : (
+            <ul>
+              {cart.lines.map((line) => (
+                <li key={line.product.id}>
+                  <span>
+                    {line.quantity} × {line.product.name}
+                  </span>
+                  <strong>{line.quantity * line.product.priceDZD} DZD</strong>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div>
+            <span>Total</span>
+            <strong>{summary.totalDZD} DZD</strong>
+          </div>
+          <div>
+            <span>Cash received</span>
+            <strong>{receivedDZD} DZD</strong>
+          </div>
+          <div>
+            <span>Status</span>
+            <strong>{isConfirmingSale ? "Confirm local save" : checkout.status}</strong>
+          </div>
         </section>
 
         <button
@@ -129,10 +344,15 @@ export function App(): ReactElement {
           type="button"
           onClick={() => void finalizeSale()}
         >
-          Finalize local cash sale
+          {isConfirmingSale ? "Confirm local cash sale" : "Review and finalize"}
         </button>
 
         <p className="sale-status">{saleStatus}</p>
+        {salesSnapshot.failedSyncCount > 0 ? (
+          <p className="sale-status warning">
+            {salesSnapshot.failedSyncCount} failed sync events need retry.
+          </p>
+        ) : null}
       </aside>
     </main>
   );

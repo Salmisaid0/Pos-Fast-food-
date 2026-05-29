@@ -133,3 +133,154 @@ input {
   color: #cbd5e1;
   cursor: not-allowed;
 }
+
+.catalog-toolbar {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.catalog-toolbar label {
+  color: #344054;
+  display: flex;
+  flex-direction: column;
+  font-weight: 700;
+  gap: 8px;
+}
+
+.catalog-toolbar input {
+  border: 1px solid #d9e1f2;
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.category-filters,
+.quick-cash-actions,
+.numeric-keypad {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.category-filters button,
+.quick-cash-actions button,
+.numeric-keypad button,
+.section-title-row button {
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 8px 14px;
+}
+
+.category-filters button {
+  background: #e2e8f0;
+  color: #172033;
+}
+
+.category-filters button.selected {
+  background: #f97316;
+  color: #ffffff;
+}
+
+.product-card small {
+  color: #667085;
+}
+
+.empty-state.light {
+  color: #667085;
+}
+
+.recent-sales {
+  margin-top: 32px;
+}
+
+.section-title-row {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.section-title-row h2 {
+  margin: 0;
+}
+
+.section-title-row span {
+  color: #667085;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.section-title-row.inverted span,
+.section-title-row.inverted button {
+  color: #ffffff;
+}
+
+.recent-sales ul,
+.receipt-preview ul {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.recent-sales li {
+  background: #ffffff;
+  border: 1px solid #d9e1f2;
+  border-radius: 14px;
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+}
+
+.recent-sales small {
+  color: #667085;
+}
+
+.quick-cash-actions button,
+.numeric-keypad button {
+  background: rgb(255 255 255 / 12%);
+  color: #ffffff;
+}
+
+.numeric-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.numeric-keypad button {
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.change-box.underpaid {
+  border: 1px solid #f97316;
+}
+
+.change-box.ready {
+  border: 1px solid #22c55e;
+}
+
+.receipt-preview {
+  background: rgb(255 255 255 / 8%);
+  border-radius: 14px;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.receipt-preview h3,
+.receipt-preview p {
+  margin: 0;
+}
+
+.receipt-preview li,
+.receipt-preview div {
+  display: flex;
+  justify-content: space-between;
+}
+
+.sale-status.warning {
+  color: #fed7aa;
+}

@@ -21,9 +21,13 @@ import {
   calculateCashPayment,
   createEmptyCart,
   decrementCartLine,
+  filterActiveProducts,
   finalizeCartCashSale,
   finalizeCashSale,
+  InMemoryKeyValueStorage,
   InMemoryLocalSaleRepositories,
+  loadLocalSalesSnapshot,
+  LocalBrowserSaleRepositories,
   LocalJsonSaleRepositories,
   seedProducts,
   toFiscalReceiptInputLines,
@@ -151,6 +155,17 @@ async function testCashCalculation(): Promise<void> {
   assert(payment.status === "RECORDED", "Cash payment should be recorded");
 }
 
+async function testPosCatalogFiltering(): Promise<void> {
+  const burgerProducts = filterActiveProducts(seedProducts, {
+    categoryId: seedProducts[0]!.categoryId,
+  });
+  const searchResults = filterActiveProducts(seedProducts, { searchTerm: "cola" });
+
+  assert(burgerProducts.length === 2, "Catalog filter should show active products by category");
+  assert(searchResults.length === 1, "Catalog filter should search active products by name");
+  assert(searchResults[0]?.sku === "DRK-001", "Catalog search should preserve product SKU result");
+}
+
 async function testPosCartStateBuildsFiscalLines(): Promise<void> {
   const classicBurger = seedProducts[0]!;
   const cola = seedProducts[4]!;
@@ -263,6 +278,35 @@ async function testLocalJsonSaleRepositoriesSurviveRestart(): Promise<void> {
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+}
+
+async function testBrowserLocalSaleRepositoriesAndRecentSalesSnapshot(): Promise<void> {
+  const storage = new InMemoryKeyValueStorage();
+  const repositories = new LocalBrowserSaleRepositories(storage, "test-pos-sales");
+  const firstSale = await finalizeCartCashSale({
+    cart: addProductToCart(createEmptyCart(), seedProducts[0]!),
+    receivedDZD: 500,
+    localSequence: 3,
+    finalizedAt: now,
+    repositories,
+  });
+
+  const restartedRepositories = new LocalBrowserSaleRepositories(storage, "test-pos-sales");
+  const snapshot = await loadLocalSalesSnapshot(restartedRepositories, 5);
+
+  assert(
+    snapshot.recentSales[0]?.order.id === firstSale.order.id,
+    "Browser durable storage should reload recent sales after restart"
+  );
+  assert(
+    snapshot.recentSales[0]?.receipt?.receiptNumber === firstSale.receipt.receiptNumber,
+    "Recent sales snapshot should include receipt number"
+  );
+  assert(
+    snapshot.pendingSyncCount === firstSale.syncEvents.length,
+    "Recent sales snapshot should include pending sync count"
+  );
+  assert(snapshot.nextLocalSequence === 4, "Recent sales snapshot should calculate next sequence");
 }
 
 async function testFiscalCalculation(): Promise<void> {
@@ -1399,9 +1443,11 @@ async function testFlushOutbox(): Promise<void> {
 
 async function main(): Promise<void> {
   await testCashCalculation();
+  await testPosCatalogFiltering();
   await testPosCartStateBuildsFiscalLines();
   await testPosCheckoutStateAndFinalizeLocalSale();
   await testLocalJsonSaleRepositoriesSurviveRestart();
+  await testBrowserLocalSaleRepositoriesAndRecentSalesSnapshot();
   await testFiscalCalculation();
   await testFiscalValidation();
   await testCompleteSaleContracts();

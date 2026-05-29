@@ -50,7 +50,29 @@ export const seedProducts: Product[] = [
 ];
 
 export function listActiveProducts(products: Product[] = seedProducts): Product[] {
-  return products.filter((product) => product.isActive);
+  return filterActiveProducts(products);
+}
+
+export interface ProductCatalogFilter {
+  categoryId?: ProductCategoryId | undefined;
+  searchTerm?: string | undefined;
+}
+
+export function filterActiveProducts(
+  products: Product[] = seedProducts,
+  filter: ProductCatalogFilter = {}
+): Product[] {
+  const normalizedSearch = filter.searchTerm?.trim().toLowerCase() ?? "";
+
+  return products.filter((product) => {
+    const matchesCategory = !filter.categoryId || product.categoryId === filter.categoryId;
+    const matchesSearch =
+      normalizedSearch.length === 0 ||
+      product.name.toLowerCase().includes(normalizedSearch) ||
+      product.sku.toLowerCase().includes(normalizedSearch);
+
+    return product.isActive && matchesCategory && matchesSearch;
+  });
 }
 
 function createSeedProduct(

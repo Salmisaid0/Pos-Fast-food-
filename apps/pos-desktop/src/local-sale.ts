@@ -24,6 +24,7 @@ import { calculateCashPayment } from "./cash";
 export interface LocalOrderRepository {
   save(order: Order): Promise<void>;
   getById(orderId: OrderId): Promise<Order | undefined>;
+  listRecent(limit: number): Promise<Order[]>;
 }
 
 export interface LocalPaymentRepository {
@@ -146,6 +147,12 @@ class InMemoryOrderRepository implements LocalOrderRepository {
 
   async getById(orderId: OrderId): Promise<Order | undefined> {
     return this.orders.get(orderId);
+  }
+
+  async listRecent(limit: number): Promise<Order[]> {
+    return [...this.orders.values()]
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+      .slice(0, limit);
   }
 }
 
