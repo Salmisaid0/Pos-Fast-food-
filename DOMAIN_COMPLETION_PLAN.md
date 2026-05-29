@@ -51,7 +51,7 @@ server sync, or printer queue processing.
   - `IsoDateTimeString`
   - `CurrencyDZD`
 - Define a single `FiscalVersion` union with current value `"v1"`.
-- Define `VatRate` constants/types for the 9% restaurant VAT scope.
+- Define `VatRate` constants/types for the current VAT-disabled scope.
 
 ### Acceptance criteria
 
@@ -162,7 +162,7 @@ server sync, or printer queue processing.
   - `lines`
 - Add `ReceiptLine` with product snapshot, quantity, unit price, net/gross totals, and VAT amount.
 - Add `FiscalReceiptInput` used by `packages/fiscal-engine`.
-- Keep fiscal engine version `v1` and 9% VAT behavior deterministic.
+- Keep fiscal engine version `v1` and VAT-disabled behavior deterministic.
 
 ### Acceptance criteria
 

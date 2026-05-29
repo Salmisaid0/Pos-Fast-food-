@@ -15,7 +15,7 @@ export type IsoDateTimeString = Brand<string, "IsoDateTimeString">;
 export type CurrencyDZD = number;
 
 export type FiscalVersion = "v1";
-export type VatRate = 0.09;
+export type VatRate = 0;
 export type OrderStatus =
   | "DRAFT"
   | "FINALIZED_LOCAL"
@@ -32,6 +32,7 @@ export type SyncEventType =
   | "RECEIPT_ISSUED"
   | "PRINT_JOB_REQUESTED";
 export type SyncAggregateType = "ORDER" | "PAYMENT" | "RECEIPT" | "PRINTER_JOB";
+export type LocalOutboxStatus = "PENDING" | "SYNCED" | "FAILED";
 
 export interface ProductCategory {
   id: ProductCategoryId;
@@ -179,6 +180,14 @@ export interface Printer {
   isActive: boolean;
   createdAt: IsoDateTimeString;
   updatedAt: IsoDateTimeString;
+}
+
+export interface LocalOutboxEntry {
+  event: SyncEvent;
+  status: LocalOutboxStatus;
+  createdAt: IsoDateTimeString;
+  syncedAt?: IsoDateTimeString;
+  lastError?: string;
 }
 
 export interface PrinterJob {

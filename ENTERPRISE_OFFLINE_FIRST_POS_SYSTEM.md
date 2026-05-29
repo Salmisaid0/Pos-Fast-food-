@@ -12,7 +12,7 @@ This first execution plan focuses only on:
 1. Single-branch operations
 2. Cash-first checkout
 3. Offline-first reliability
-4. Fiscal receipt generation (9% VAT)
+4. Fiscal receipt generation (VAT disabled for current scope)
 5. Reliable server-side printing
 
 ---
@@ -27,7 +27,7 @@ This first execution plan focuses only on:
 - Cash payment with automatic change calculation (DA)
 - Local offline persistence in POS desktop app
 - Sync outbox from local app to server when online
-- Receipt generation with 9% VAT logic
+- Receipt generation with VAT-disabled fiscal logic
 - Print job queue and thermal printer worker (ESC/POS)
 - Basic manager view for same branch (sales list, totals)
 
@@ -103,7 +103,7 @@ This first execution plan focuses only on:
 - Idempotent order create endpoint
 - Fiscal engine v1:
   - subtotal
-  - 9% VAT computation
+  - VAT-disabled total computation
   - total + receipt payload
 - Sync API endpoint to consume outbox events
 
@@ -190,7 +190,7 @@ This first execution plan focuses only on:
 
 ### Epic E — Receipt & Printing
 
-- Implement fiscal receipt DTO (9% VAT)
+- Implement fiscal receipt DTO (VAT disabled)
 - Build `POST /print-job` flow
 - Implement print worker retry behavior
 
@@ -212,7 +212,7 @@ This first execution plan focuses only on:
 
 - Unit tests:
   - cash change calculator
-  - 9% VAT calculator
+  - VAT-disabled fiscal calculator
   - sync retry/backoff logic
 - Integration tests:
   - outbox sync endpoint idempotency

@@ -13,7 +13,7 @@ minimal fiscal/cash/sync helpers, worker stubs, and smoke tests are present.
   - no SATIM/CIB/Edahabia payment integration;
   - cash only;
   - offline-first local sale writes;
-  - 9% VAT fiscal engine v1;
+  - VAT-disabled fiscal engine v1;
   - no direct printer calls from the POS client.
 
 ## Sprint 1: Domain Completion foundation
@@ -44,7 +44,7 @@ vertical slice.
 
 ### Goal
 
-Make the 9% VAT fiscal engine deterministic, validated, line-aware, and regression-testable.
+Make the VAT-disabled fiscal engine deterministic, validated, line-aware, and regression-testable.
 
 ### Main work
 
@@ -52,7 +52,7 @@ Make the 9% VAT fiscal engine deterministic, validated, line-aware, and regressi
 - Add fiscal input/output DTOs from Sprint 1 contracts.
 - Implement line-level calculation:
   - line subtotal;
-  - line VAT at 9%;
+  - line VAT at 0%;
   - line total;
   - receipt subtotal/VAT/total.
 - Add a single rounding helper and document the v1 rounding policy.

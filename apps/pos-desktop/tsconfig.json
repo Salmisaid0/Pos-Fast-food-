@@ -8,6 +8,9 @@
   "references": [
     {
       "path": "../../packages/shared-types"
+    },
+    {
+      "path": "../../packages/fiscal-engine"
     }
   ],
   "include": ["src/**/*.ts"]

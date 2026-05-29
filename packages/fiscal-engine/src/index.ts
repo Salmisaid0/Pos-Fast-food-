@@ -1,7 +1,7 @@
 import type { FiscalReceiptInput, FiscalVersion, Receipt, VatRate } from "@packages/shared-types";
 
 export const FISCAL_ENGINE_VERSION: FiscalVersion = "v1";
-export const VAT_RATE_RESTAURATION: VatRate = 0.09;
+export const VAT_RATE_DISABLED: VatRate = 0;
 
 export class InvalidFiscalInputError extends Error {
   override readonly name = "InvalidFiscalInputError";
@@ -47,7 +47,7 @@ export function calculateReceipt(input: FiscalReceiptInput): Receipt {
     receiptNumber: input.receiptNumber,
     fiscalVersion: FISCAL_ENGINE_VERSION,
     subtotalDZD,
-    vatRate: VAT_RATE_RESTAURATION,
+    vatRate: VAT_RATE_DISABLED,
     vatAmountDZD,
     totalDZD,
     issuedAt: input.issuedAt,
@@ -83,9 +83,9 @@ function validateReceiptInput(input: FiscalReceiptInput): void {
       );
     }
 
-    if (line.vatRate !== VAT_RATE_RESTAURATION) {
+    if (line.vatRate !== VAT_RATE_DISABLED) {
       throw new UnsupportedVatRateError(
-        `${fieldPrefix}.vatRate must be ${VAT_RATE_RESTAURATION} for fiscal v1.`
+        `${fieldPrefix}.vatRate must be ${VAT_RATE_DISABLED} for fiscal v1 (VAT disabled).`
       );
     }
   });

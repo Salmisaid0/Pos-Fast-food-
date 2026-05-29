@@ -5,7 +5,8 @@
   "main": "../../../dist/apps/pos-desktop/index.js",
   "types": "../../../dist/apps/pos-desktop/index.d.ts",
   "dependencies": {
-    "@packages/shared-types": "file:../../packages/shared-types"
+    "@packages/shared-types": "file:../../packages/shared-types",
+    "@packages/fiscal-engine": "file:../../packages/fiscal-engine"
   },
   "scripts": {
     "build": "tsc -b",

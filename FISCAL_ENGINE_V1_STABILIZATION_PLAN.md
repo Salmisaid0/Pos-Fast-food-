@@ -13,12 +13,12 @@ that affect receipts, order totals, cash payments, and sync events.
 The current implementation in `packages/fiscal-engine` is intentionally minimal:
 
 - `FISCAL_ENGINE_VERSION = "v1"`.
-- `VAT_RATE_RESTAURATION = 0.09`.
-- `calculateReceipt(orderId, subtotalDZD, generatedAt)` computes VAT from a subtotal and returns a
-  minimal `Receipt`.
+- `VAT_RATE_DISABLED = 0` for the current VAT-disabled scope.
+- `calculateReceipt(input)` accepts structured receipt input, calculates line totals, and returns an
+  immutable `Receipt` snapshot.
 - Rounding is currently `Math.round(value * 100) / 100`.
-- Receipt output does not yet include line-level totals, receipt number, receipt id, immutable product
-  snapshots, or a formal rounding policy document.
+- Receipt output now includes line-level totals, receipt number, receipt id, and immutable product
+  snapshots; the remaining hardening work is to add broader regression fixtures and CI-grade fixture snapshots.
 
 ## Stabilization objective
 
@@ -30,7 +30,7 @@ The stable v1 contract must answer these questions every time:
 1. What inputs are accepted?
 2. What values are rejected?
 3. How is each receipt line calculated?
-4. How are VAT and totals rounded?
+4. How are VAT-disabled totals rounded?
 5. What immutable receipt snapshot is produced?
 6. How do we prove future fiscal changes do not silently alter historical receipts?
 
@@ -40,7 +40,7 @@ The stable v1 contract must answer these questions every time:
 
 - Single branch only.
 - Cash-only finalized sales.
-- 9% restaurant VAT.
+- VAT-disabled receipt totals.
 - Deterministic receipt totals.
 - Receipt snapshots suitable for offline local persistence and later sync.
 - Tests for rounding, validation, totals, fiscal versioning, and regression fixtures.
@@ -86,12 +86,12 @@ The stable v1 contract must answer these questions every time:
 - Define a formal v1 rounding policy:
   - currency precision is two decimals for internal arithmetic until printing rules are finalized;
   - line subtotal = `unitPriceDZD * quantity`;
-  - line VAT = rounded line subtotal multiplied by 9%;
+  - line VAT = 0 while VAT is disabled;
   - receipt subtotal = sum of rounded line subtotals;
-  - receipt VAT = sum of rounded line VAT amounts;
-  - receipt total = subtotal + VAT.
+  - receipt VAT = 0 while VAT is disabled;
+  - receipt total = subtotal while VAT is disabled.
 - Add `roundCurrencyDZD(value)` as an exported or internal tested utility.
-- Document why line-level VAT summing is chosen for v1 to make printed receipt lines reconcile with totals.
+- Document why line-level zero-VAT fields are kept for v1 so printed receipt lines reconcile with totals and future VAT changes have a stable field shape.
 
 ### Acceptance criteria
 
@@ -111,7 +111,7 @@ The stable v1 contract must answer these questions every time:
   - at least one line item;
   - quantity greater than zero;
   - unit price greater than or equal to zero;
-  - VAT rate exactly 9% for v1;
+  - VAT rate exactly 0 for v1 while VAT is disabled;
   - finite numeric values only.
 - Add explicit error messages or typed domain errors:
   - `InvalidFiscalInputError`
@@ -212,10 +212,10 @@ The stable v1 contract must answer these questions every time:
 
 ### Required passing tests
 
-1. Generates v1 receipt for one item at 9% VAT.
-2. Generates v1 receipt for multiple items at 9% VAT.
+1. Generates v1 receipt for one item with VAT disabled.
+2. Generates v1 receipt for multiple items with VAT disabled.
 3. Rounds line totals deterministically.
-4. Sums rounded line VAT into receipt VAT.
+4. Keeps line VAT and receipt VAT at zero.
 5. Rejects empty receipt lines.
 6. Rejects zero or negative quantity.
 7. Rejects negative unit price.
@@ -228,7 +228,7 @@ The stable v1 contract must answer these questions every time:
 ## Suggested implementation order
 
 1. Add fiscal shared DTOs during Domain Completion Workstreams 1 and 5.
-2. Replace `calculateReceipt(orderId, subtotalDZD)` with structured `calculateReceipt(input)`.
+2. Keep `calculateReceipt(input)` as the structured public API and expand regression coverage around it.
 3. Add deterministic rounding helper and tests.
 4. Add validation and domain errors.
 5. Add receipt line calculations and multi-line tests.
@@ -240,8 +240,8 @@ The stable v1 contract must answer these questions every time:
 
 - Fiscal engine uses structured input and returns immutable receipt snapshots.
 - Fiscal engine rejects invalid inputs with explicit errors.
-- 9% VAT and rounding policy are documented and tested.
-- Receipt line totals, VAT totals, and grand totals reconcile exactly.
+- VAT-disabled rounding policy is documented and tested.
+- Receipt line totals and grand totals reconcile exactly with zero VAT.
 - Regression fixtures protect v1 from accidental behavioral changes.
 - `npm run check` passes from a clean build.
 - No multi-branch, card payment, SATIM, or direct-printer behavior is introduced.

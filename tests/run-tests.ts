@@ -1,5 +1,9 @@
 import { acceptSyncEvent } from "@apps/api";
-import { calculateCashPayment } from "@apps/pos-desktop";
+import {
+  calculateCashPayment,
+  finalizeCashSale,
+  InMemoryLocalSaleRepositories,
+} from "@apps/pos-desktop";
 import {
   calculateReceipt,
   FISCAL_ENGINE_VERSION,
@@ -16,6 +20,8 @@ import type {
   Order,
   OrderId,
   PaymentId,
+  PrinterId,
+  PrinterJobId,
   ProductCategory,
   ProductCategoryId,
   ProductId,
@@ -49,6 +55,8 @@ const orderId = "order-1" as OrderId;
 const paymentId = "payment-1" as PaymentId;
 const receiptId = "receipt-1" as ReceiptId;
 const receiptNumber = "R-2026-000001" as ReceiptNumber;
+const printerId = "printer-receipt-1" as PrinterId;
+const printerJobId = "printer-job-1" as PrinterJobId;
 const categoryId = "category-burgers" as ProductCategoryId;
 const productId = "product-burger" as ProductId;
 
@@ -73,7 +81,7 @@ const fiscalInput: FiscalReceiptInput = {
       productName: "Classic Burger",
       quantity: 2,
       unitPriceDZD: 500,
-      vatRate: 0.09,
+      vatRate: 0,
     },
   ],
 };
@@ -82,20 +90,20 @@ async function testCashCalculation(): Promise<void> {
   const payment = calculateCashPayment({
     paymentId,
     orderId,
-    amountDueDZD: 1090,
+    amountDueDZD: 1000,
     receivedDZD: 1200,
     paidAt: now,
     createdAt: now,
   });
 
-  assert(payment.changeDZD === 110, "Cash change should be 110");
+  assert(payment.changeDZD === 200, "Cash change should be 200");
   assert(payment.status === "RECORDED", "Cash payment should be recorded");
 }
 
 async function testFiscalCalculation(): Promise<void> {
   const receipt = calculateReceipt(fiscalInput);
-  assert(receipt.vatAmountDZD === 90, "VAT should be 90 for subtotal 1000");
-  assert(receipt.totalDZD === 1090, "Total should be 1090");
+  assert(receipt.vatAmountDZD === 0, "VAT should be 0 while VAT is disabled");
+  assert(receipt.totalDZD === 1000, "Total should be 1000 without VAT");
   assert(receipt.fiscalVersion === FISCAL_ENGINE_VERSION, "Fiscal version should be v1");
   assert(receipt.lines.length === 1, "Receipt should contain one line");
   assert(
@@ -122,7 +130,7 @@ async function testFiscalValidation(): Promise<void> {
     () =>
       calculateReceipt({
         ...fiscalInput,
-        lines: [{ ...fiscalInput.lines[0]!, vatRate: 0.19 as 0.09 }],
+        lines: [{ ...fiscalInput.lines[0]!, vatRate: 0.19 as 0 }],
       }),
     "Unsupported VAT rate should be rejected"
   );
@@ -168,6 +176,45 @@ async function testCompleteSaleContracts(): Promise<void> {
     order.items[0]?.productName === receipt.lines[0]?.productName,
     "Order item should keep receipt product snapshot"
   );
+}
+
+async function testFinalizeCashSaleWritesLocalDataAndOutbox(): Promise<void> {
+  const repositories = new InMemoryLocalSaleRepositories();
+  const sale = await finalizeCashSale(
+    {
+      orderId,
+      paymentId,
+      receiptId,
+      receiptNumber,
+      localSequence: 1,
+      items: fiscalInput.lines,
+      receivedDZD: 1200,
+      finalizedAt: now,
+      printer: {
+        printerJobId,
+        targetPrinterId: printerId,
+      },
+    },
+    repositories
+  );
+
+  const savedOrder = await repositories.orders.getById(orderId);
+  const savedPayment = await repositories.payments.getByOrderId(orderId);
+  const savedReceipt = await repositories.receipts.getByOrderId(orderId);
+  const outboxEntries = await repositories.outbox.listEntries();
+
+  assert(savedOrder?.id === orderId, "Finalized sale should save the order locally");
+  assert(savedPayment?.amountDueDZD === sale.receipt.totalDZD, "Payment should use receipt total");
+  assert(savedReceipt?.id === receiptId, "Finalized sale should save the receipt locally");
+  assert(
+    outboxEntries.length === 4,
+    "Finalized sale should enqueue order, payment, receipt, and print events"
+  );
+  assert(
+    outboxEntries.every((entry) => entry.status === "PENDING"),
+    "All new outbox entries should start pending"
+  );
+  assert(sale.printerJob?.status === "QUEUED", "Receipt print job should be queued server-side");
 }
 
 async function testIdempotencyGuard(): Promise<void> {
@@ -233,6 +280,7 @@ async function main(): Promise<void> {
   await testFiscalCalculation();
   await testFiscalValidation();
   await testCompleteSaleContracts();
+  await testFinalizeCashSaleWritesLocalDataAndOutbox();
   await testIdempotencyGuard();
   await testFlushOutbox();
   console.log("All tests passed.");
