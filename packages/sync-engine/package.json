@@ -1,0 +1,16 @@
+{
+  "name": "@packages/sync-engine",
+  "version": "0.1.0",
+  "private": true,
+  "main": "../../../dist/packages/sync-engine/index.js",
+  "types": "../../../dist/packages/sync-engine/index.d.ts",
+  "dependencies": {
+    "@packages/shared-types": "file:../shared-types"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc -b --pretty false",
+    "test": "echo \"sync-engine covered by root smoke tests\""
+  }
+}

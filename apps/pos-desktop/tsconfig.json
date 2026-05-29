@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "../../dist/apps/pos-desktop",
+    "tsBuildInfoFile": "../../dist/apps/pos-desktop/tsconfig.tsbuildinfo",
+    "jsx": "react-jsx"
+  },
+  "references": [
+    {
+      "path": "../../packages/shared-types"
+    },
+    {
+      "path": "../../packages/fiscal-engine"
+    }
+  ],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"]
+}
