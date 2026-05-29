@@ -44,10 +44,13 @@ import {
   InMemoryPrintWorkerMetrics,
   InMemoryRedisPrintJobClient,
   IoredisPrintJobClient,
+  JsonConsolePrintWorkerLogger,
   PrintWorkerLoop,
   RecordingPrintWorkerLogger,
   RedisPrintJobRepository,
   TcpEscPosPrinterTransport,
+  createPrintWorkerRuntime,
+  readPrintWorkerRuntimeConfig,
   buildEscPosReceiptPayload,
   createArabicCodePageTextEncoder,
   createTcpEscPosPrinterTransportFromDomainPrinters,
@@ -1227,6 +1230,80 @@ async function testRedisPrintQueueRuntimeConfigReadsEnvironment(): Promise<void>
   );
 }
 
+async function testPrintWorkerRuntimeConfigReadsEnvironment(): Promise<void> {
+  const config = readPrintWorkerRuntimeConfig({
+    PRINT_WORKER_QUEUE_BACKEND: "file",
+    PRINT_WORKER_FILE_QUEUE_PATH: "/tmp/pos-print-queue.json",
+    PRINT_WORKER_INTERVAL_MS: "250",
+    PRINT_WORKER_BATCH_SIZE: "7",
+    PRINT_WORKER_MAX_ATTEMPTS: "4",
+    PRINT_WORKER_SHUTDOWN_SIGNALS: "SIGINT,SIGTERM",
+    PRINTER_CONFIG_JSON: JSON.stringify([
+      {
+        id: "printer-runtime-1",
+        host: "192.168.1.44",
+        port: 9100,
+        timeoutMs: 3000,
+        charactersPerLine: 42,
+        rtl: true,
+      },
+    ]),
+  });
+
+  assert(config.queueBackend === "file", "Worker runtime config should read queue backend");
+  assert(
+    config.fileQueuePath === "/tmp/pos-print-queue.json",
+    "Worker runtime config should read file queue path"
+  );
+  assert(config.intervalMs === 250, "Worker runtime config should read interval");
+  assert(config.batchSize === 7, "Worker runtime config should read batch size");
+  assert(config.maxAttempts === 4, "Worker runtime config should read max attempts");
+  assert(
+    config.printers[0]?.id === "printer-runtime-1",
+    "Worker runtime config should read printer id"
+  );
+  assert(config.printers[0]?.rtl === true, "Worker runtime config should read RTL printer option");
+}
+
+async function testPrintWorkerRuntimeCreatesFileBackedLoop(): Promise<void> {
+  const directory = await mkdtemp(join(tmpdir(), "pos-worker-runtime-"));
+  const queuePath = join(directory, "print-queue.json");
+
+  try {
+    const runtime = createPrintWorkerRuntime({
+      queueBackend: "file",
+      fileQueuePath: queuePath,
+      intervalMs: 1000,
+      batchSize: 5,
+      maxAttempts: 3,
+      shutdownSignals: [],
+      printers: [
+        {
+          id: "printer-runtime-2",
+          host: "127.0.0.1",
+          port: 9100,
+        },
+      ],
+    });
+
+    assert(
+      runtime.loop instanceof PrintWorkerLoop,
+      "Worker runtime should create print worker loop"
+    );
+    assert(
+      runtime.logger instanceof JsonConsolePrintWorkerLogger,
+      "Worker runtime should create structured JSON logger"
+    );
+    assert(runtime.config.fileQueuePath === queuePath, "Worker runtime should keep queue path");
+    assert(
+      runtime.loop.running === false,
+      "Worker runtime factory should not start loop automatically"
+    );
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
 async function testPrintWorkerLoopRunOnceDrainsQueue(): Promise<void> {
   const receipt = calculateReceipt(fiscalInput);
   const repository = new InMemoryPrintJobRepository([
@@ -1720,6 +1797,8 @@ async function main(): Promise<void> {
   await testRedisPrintJobRepositoryDrainsQueue();
   await testIoredisPrintJobClientAdapterDrainsQueue();
   await testRedisPrintQueueRuntimeConfigReadsEnvironment();
+  await testPrintWorkerRuntimeConfigReadsEnvironment();
+  await testPrintWorkerRuntimeCreatesFileBackedLoop();
   await testPrintWorkerLoopRunOnceDrainsQueue();
   await testPrintWorkerLoopRecordsOperationalControls();
   await testPrintWorkerLoopGracefulShutdown();
