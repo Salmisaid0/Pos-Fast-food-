@@ -1,3 +1,8 @@
+export {
+  createEmptyFileSyncIngestionStore,
+  FileSyncIngestionRepository,
+  type FileSyncIngestionStore,
+} from "./file-sync-ingestion-repository";
 export { bootstrapApi, readApiRuntimeConfig, type ApiRuntimeConfig } from "./main";
 export {
   NestSyncController,

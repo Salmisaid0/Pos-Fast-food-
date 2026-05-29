@@ -2,11 +2,13 @@ import "reflect-metadata";
 
 import { NestFactory } from "@nestjs/core";
 
+import { FileSyncIngestionRepository } from "./file-sync-ingestion-repository";
 import { NestSyncModule } from "./sync-nest.controller";
 
 export interface ApiRuntimeConfig {
   port: number;
   host?: string;
+  syncStorePath?: string;
 }
 
 export function readApiRuntimeConfig(
@@ -17,13 +19,17 @@ export function readApiRuntimeConfig(
   };
 
   if (env.API_HOST) config.host = env.API_HOST;
+  if (env.API_SYNC_STORE_PATH) config.syncStorePath = env.API_SYNC_STORE_PATH;
   return config;
 }
 
 export async function bootstrapApi(
   config: ApiRuntimeConfig = readApiRuntimeConfig()
 ): Promise<void> {
-  const app = await NestFactory.create(NestSyncModule.register());
+  const syncModule = config.syncStorePath
+    ? NestSyncModule.register({ repository: new FileSyncIngestionRepository(config.syncStorePath) })
+    : NestSyncModule.register();
+  const app = await NestFactory.create(syncModule);
   if (config.host) {
     await app.listen(config.port, config.host);
   } else {

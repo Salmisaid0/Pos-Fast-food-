@@ -72,3 +72,7 @@ The POS desktop runtime now starts a lightweight outbox sync loop after loading 
 pending or failed local sync events to the API `POST /sync/events` endpoint through `HttpRemoteSyncApi`,
 marks successful events as synced, keeps failed events retryable, and exposes cashier-facing sync status
 for pending, syncing, synced, failed, and offline states.
+
+## API durable sync persistence
+
+`apps/api` includes `FileSyncIngestionRepository` for development and pilot persistence before PostgreSQL is introduced. Set `API_SYNC_STORE_PATH` to persist synced orders, cash payments, receipts, printer jobs, and processed idempotency keys across API restarts.
