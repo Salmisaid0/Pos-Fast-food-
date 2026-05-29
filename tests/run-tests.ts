@@ -32,7 +32,9 @@ import {
   createLocalJsonSaleRepositoriesFromTarget,
   createLocalSalesBackup,
   createLocalSalesBackupFilename,
+  createLocalSalesBackupRestorePreview,
   parseLocalSalesBackupPayload,
+  restoreLocalSalesBackup,
   serializeLocalSalesBackup,
   validateLocalSalesBackup,
   InMemoryKeyValueStorage,
@@ -664,6 +666,60 @@ async function testLocalSalesBackupValidationRejectsCorruptRecoveryFiles(): Prom
     !mismatchedCountBackup.ok &&
       mismatchedCountBackup.errors.some((error) => error.includes("order count")),
     "Backup validation should explain count mismatches"
+  );
+}
+
+async function testLocalSalesBackupRestorePreviewAndImport(): Promise<void> {
+  const sourceRepositories = new InMemoryLocalSaleRepositories();
+  const sale = await finalizeCartCashSale({
+    cart: addProductToCart(createEmptyCart(), seedProducts[0]!),
+    receivedDZD: 500,
+    localSequence: 14,
+    finalizedAt: now,
+    repositories: sourceRepositories,
+    printer: {
+      targetPrinterId: printerId,
+    },
+  });
+  await sourceRepositories.outbox.markFailed(sale.syncEvents[0]!.id, new Error("offline"), now);
+  await sourceRepositories.outbox.markSynced(sale.syncEvents[1]!.id, now);
+  const backup = await createLocalSalesBackup(sourceRepositories, { exportedAt: now });
+  const targetRepositories = new InMemoryLocalSaleRepositories();
+
+  const preview = await createLocalSalesBackupRestorePreview(targetRepositories, backup);
+  const result = await restoreLocalSalesBackup(targetRepositories, backup, now);
+  const duplicatePreview = await createLocalSalesBackupRestorePreview(targetRepositories, backup);
+  const restoredEntries = await targetRepositories.outbox.listEntries();
+
+  assert(preview.ordersToRestore === 1, "Backup restore preview should count new orders");
+  assert(
+    preview.outboxEntriesToRestore === backup.outboxEntries.length,
+    "Backup restore preview should count new outbox entries"
+  );
+  assert(result.restoredAt === now, "Backup restore should report restore time");
+  assert(
+    (await targetRepositories.orders.getById(sale.order.id))?.id === sale.order.id,
+    "Backup restore should restore orders"
+  );
+  assert(
+    restoredEntries.some(
+      (entry) => entry.event.id === sale.syncEvents[0]!.id && entry.status === "FAILED"
+    ),
+    "Backup restore should preserve failed outbox state"
+  );
+  assert(
+    restoredEntries.some(
+      (entry) => entry.event.id === sale.syncEvents[1]!.id && entry.status === "SYNCED"
+    ),
+    "Backup restore should preserve synced outbox state"
+  );
+  assert(
+    duplicatePreview.ordersToRestore === 0,
+    "Backup restore preview should detect existing orders"
+  );
+  assert(
+    duplicatePreview.existingOutboxEntries === backup.outboxEntries.length,
+    "Backup restore preview should detect existing outbox entries"
   );
 }
 
@@ -1990,6 +2046,7 @@ async function main(): Promise<void> {
   await testBrowserLocalSaleRepositoriesAndRecentSalesSnapshot();
   await testLocalSalesBackupContainsDurableSaleData();
   await testLocalSalesBackupValidationRejectsCorruptRecoveryFiles();
+  await testLocalSalesBackupRestorePreviewAndImport();
   await testLocalPrintStatusSnapshotTracksQueuedFailedAndSentRequests();
   await testSyncRecoverySnapshotListsRetryableEvents();
   await testPosOutboxSyncServiceFlushesSuccessfully();

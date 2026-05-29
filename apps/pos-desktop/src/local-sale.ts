@@ -42,6 +42,7 @@ export interface LocalSaleOutboxRepository {
   listPending(limit: number): Promise<SyncEvent[]>;
   markSynced(eventId: string, syncedAt?: IsoDateTimeString): Promise<void>;
   markFailed(eventId: string, error: Error, failedAt?: IsoDateTimeString): Promise<void>;
+  restoreEntry(entry: LocalOutboxEntry): Promise<void>;
   listEntries(): Promise<LocalOutboxEntry[]>;
 }
 
@@ -225,6 +226,10 @@ class InMemoryOutboxRepository implements LocalSaleOutboxRepository {
       status: "FAILED",
       lastError: error.message,
     });
+  }
+
+  async restoreEntry(entry: LocalOutboxEntry): Promise<void> {
+    this.entries.set(entry.event.id, entry);
   }
 
   async listEntries(): Promise<LocalOutboxEntry[]> {

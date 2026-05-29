@@ -185,6 +185,12 @@ class LocalBrowserOutboxRepository implements LocalSaleOutboxRepository {
     this.storage.writeStore(store);
   }
 
+  async restoreEntry(entry: LocalOutboxEntry): Promise<void> {
+    const store = this.storage.readStore();
+    store.outboxEntries = upsertByEventId(store.outboxEntries, entry);
+    this.storage.writeStore(store);
+  }
+
   async listEntries(): Promise<LocalOutboxEntry[]> {
     return this.storage.readStore().outboxEntries;
   }

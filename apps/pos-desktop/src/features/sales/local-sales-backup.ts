@@ -55,6 +55,23 @@ export type LocalSalesBackupValidationResult =
   | LocalSalesBackupValidationSuccess
   | LocalSalesBackupValidationFailure;
 
+export interface LocalSalesBackupRestorePreview {
+  backup: LocalSalesBackup;
+  ordersToRestore: number;
+  paymentsToRestore: number;
+  receiptsToRestore: number;
+  outboxEntriesToRestore: number;
+  existingOrders: number;
+  existingOutboxEntries: number;
+  pendingOutboxEntries: number;
+  failedOutboxEntries: number;
+  syncedOutboxEntries: number;
+}
+
+export interface LocalSalesBackupRestoreResult extends LocalSalesBackupRestorePreview {
+  restoredAt: IsoDateTimeString;
+}
+
 export async function createLocalSalesBackup(
   repositories: LocalSaleRepositories,
   options: CreateLocalSalesBackupOptions = {}
@@ -156,6 +173,48 @@ export function validateLocalSalesBackup(candidate: unknown): LocalSalesBackupVa
   if (errors.length > 0) return { ok: false, errors };
 
   return { ok: true, backup: candidate as unknown as LocalSalesBackup };
+}
+
+export async function createLocalSalesBackupRestorePreview(
+  repositories: LocalSaleRepositories,
+  backup: LocalSalesBackup
+): Promise<LocalSalesBackupRestorePreview> {
+  const existingOrders = await repositories.orders.listRecent(100_000);
+  const existingOutboxEntries = await repositories.outbox.listEntries();
+  const existingOrderIds = new Set(existingOrders.map((order) => order.id));
+  const existingOutboxEventIds = new Set(existingOutboxEntries.map((entry) => entry.event.id));
+
+  return {
+    backup,
+    ordersToRestore: backup.orders.filter((order) => !existingOrderIds.has(order.id)).length,
+    paymentsToRestore: backup.payments.length,
+    receiptsToRestore: backup.receipts.length,
+    outboxEntriesToRestore: backup.outboxEntries.filter(
+      (entry) => !existingOutboxEventIds.has(entry.event.id)
+    ).length,
+    existingOrders: backup.orders.filter((order) => existingOrderIds.has(order.id)).length,
+    existingOutboxEntries: backup.outboxEntries.filter((entry) =>
+      existingOutboxEventIds.has(entry.event.id)
+    ).length,
+    pendingOutboxEntries: backup.outboxEntries.filter((entry) => entry.status === "PENDING").length,
+    failedOutboxEntries: backup.outboxEntries.filter((entry) => entry.status === "FAILED").length,
+    syncedOutboxEntries: backup.outboxEntries.filter((entry) => entry.status === "SYNCED").length,
+  };
+}
+
+export async function restoreLocalSalesBackup(
+  repositories: LocalSaleRepositories,
+  backup: LocalSalesBackup,
+  restoredAt: IsoDateTimeString = new Date().toISOString() as IsoDateTimeString
+): Promise<LocalSalesBackupRestoreResult> {
+  const preview = await createLocalSalesBackupRestorePreview(repositories, backup);
+
+  for (const order of backup.orders) await repositories.orders.save(order);
+  for (const receipt of backup.receipts) await repositories.receipts.save(receipt);
+  for (const payment of backup.payments) await repositories.payments.save(payment);
+  for (const entry of backup.outboxEntries) await repositories.outbox.restoreEntry(entry);
+
+  return { ...preview, restoredAt };
 }
 
 export async function downloadBrowserLocalSalesBackup(

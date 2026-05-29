@@ -31,8 +31,11 @@ import {
   type SyncRecoverySnapshot,
 } from "./features/sales/sync-recovery";
 import {
+  createLocalSalesBackupRestorePreview,
   downloadBrowserLocalSalesBackup,
   parseLocalSalesBackupPayload,
+  restoreLocalSalesBackup,
+  type LocalSalesBackupRestorePreview,
 } from "./features/sales/local-sales-backup";
 import {
   formatLocalPrintJobStatus,
@@ -59,6 +62,9 @@ export function App(): ReactElement {
   const [backupImportStatus, setBackupImportStatus] = useState(
     "No backup file checked for recovery yet."
   );
+  const [backupRestorePreview, setBackupRestorePreview] = useState<
+    LocalSalesBackupRestorePreview | undefined
+  >(undefined);
   const [selectedCategoryId, setSelectedCategoryId] = useState<
     ProductCategoryId | typeof allCategories
   >(allCategories);
@@ -191,14 +197,28 @@ export function App(): ReactElement {
 
     const validation = parseLocalSalesBackupPayload(await backupFile.text());
     if (validation.ok) {
+      const preview = await createLocalSalesBackupRestorePreview(repositories, validation.backup);
+      setBackupRestorePreview(preview);
       setBackupImportStatus(
-        `Backup ${backupFile.name} is valid: ${validation.backup.counts.orders} orders, ${validation.backup.counts.outboxEntries} outbox entries.`
+        `Backup ${backupFile.name} is valid: ${preview.ordersToRestore} new orders, ${preview.outboxEntriesToRestore} new outbox entries.`
       );
     } else {
+      setBackupRestorePreview(undefined);
       setBackupImportStatus(`Backup ${backupFile.name} rejected: ${validation.errors.join("; ")}`);
     }
 
     resetInput();
+  }
+
+  async function restoreBackupPreview(): Promise<void> {
+    if (!backupRestorePreview) return;
+
+    const result = await restoreLocalSalesBackup(repositories, backupRestorePreview.backup);
+    setBackupImportStatus(
+      `Restored backup: ${result.ordersToRestore} new orders and ${result.outboxEntriesToRestore} new outbox entries ready for recovery.`
+    );
+    setBackupRestorePreview(undefined);
+    await refreshLocalSales();
   }
 
   function appendCashDigit(digit: string): void {
@@ -448,6 +468,20 @@ export function App(): ReactElement {
             />
           </label>
           <small>{backupImportStatus}</small>
+          {backupRestorePreview ? (
+            <div className="backup-restore-preview">
+              <strong>Restore preview</strong>
+              <small>
+                {backupRestorePreview.ordersToRestore} new / {backupRestorePreview.existingOrders}{" "}
+                existing orders · {backupRestorePreview.outboxEntriesToRestore} new outbox entries ·{" "}
+                {backupRestorePreview.pendingOutboxEntries} pending ·{" "}
+                {backupRestorePreview.failedOutboxEntries} failed
+              </small>
+              <button type="button" onClick={() => void restoreBackupPreview()}>
+                Restore validated backup
+              </button>
+            </div>
+          ) : null}
         </section>
       </section>
 

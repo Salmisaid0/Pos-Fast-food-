@@ -577,3 +577,23 @@ input {
   padding: 0.45rem;
   background: #fff;
 }
+
+.backup-restore-preview {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.8rem;
+  border: 1px solid #f59e0b;
+  border-radius: 14px;
+  background: #fff7ed;
+}
+
+.backup-restore-preview button {
+  justify-self: start;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.55rem 0.95rem;
+  background: #ea580c;
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}

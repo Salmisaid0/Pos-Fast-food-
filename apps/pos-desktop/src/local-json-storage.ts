@@ -171,6 +171,12 @@ class LocalJsonOutboxRepository implements LocalSaleOutboxRepository {
     await this.storage.writeStore(store);
   }
 
+  async restoreEntry(entry: LocalOutboxEntry): Promise<void> {
+    const store = await this.storage.readStore();
+    store.outboxEntries = upsertByEventId(store.outboxEntries, entry);
+    await this.storage.writeStore(store);
+  }
+
   async listEntries(): Promise<LocalOutboxEntry[]> {
     const store = await this.storage.readStore();
     return store.outboxEntries;
