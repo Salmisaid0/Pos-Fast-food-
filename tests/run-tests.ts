@@ -1,4 +1,9 @@
-import { acceptSyncEvent } from "@apps/api";
+import {
+  acceptSyncEvent,
+  ingestSyncEvent,
+  ingestSyncEvents,
+  InMemorySyncIngestionRepository,
+} from "@apps/api";
 import {
   calculateCashPayment,
   finalizeCashSale,
@@ -237,6 +242,77 @@ async function testIdempotencyGuard(): Promise<void> {
   assert(second.accepted === false, "Duplicate event must be rejected");
 }
 
+async function testApiSyncIngestionPersistsSaleEvents(): Promise<void> {
+  const localRepositories = new InMemoryLocalSaleRepositories();
+  const apiRepository = new InMemorySyncIngestionRepository();
+  const sale = await finalizeCashSale(
+    {
+      orderId,
+      paymentId,
+      receiptId,
+      receiptNumber,
+      localSequence: 2,
+      items: fiscalInput.lines,
+      receivedDZD: 1200,
+      finalizedAt: now,
+      printer: {
+        printerJobId,
+        targetPrinterId: printerId,
+      },
+    },
+    localRepositories
+  );
+
+  const results = await ingestSyncEvents(sale.syncEvents, apiRepository);
+  assert(
+    results.every((result) => result.accepted),
+    "All sale sync events should be accepted"
+  );
+  assert((await apiRepository.getOrder(orderId))?.id === orderId, "API sync should persist order");
+  assert(
+    (await apiRepository.getCashPayment(paymentId))?.id === paymentId,
+    "API sync should persist cash payment"
+  );
+  assert(
+    (await apiRepository.getReceipt(receiptId))?.id === receiptId,
+    "API sync should persist receipt"
+  );
+  assert(
+    (await apiRepository.getPrinterJob(printerJobId))?.id === printerJobId,
+    "API sync should persist printer job request"
+  );
+
+  const duplicate = await ingestSyncEvent(sale.syncEvents[0]!, apiRepository);
+  assert(duplicate.accepted === false, "Duplicate sync event should not be accepted twice");
+  assert(
+    duplicate.reason === "duplicate_idempotency_key",
+    "Duplicate sync event should be rejected by idempotency key"
+  );
+}
+
+async function testApiSyncRejectsInvalidAggregate(): Promise<void> {
+  const receipt = calculateReceipt(fiscalInput);
+  const apiRepository = new InMemorySyncIngestionRepository();
+  const invalidEvent: SyncEvent<"RECEIPT_ISSUED"> = {
+    id: "event-invalid" as SyncEventId,
+    type: "RECEIPT_ISSUED",
+    schemaVersion: 1,
+    aggregateId: receipt.id,
+    aggregateType: "ORDER",
+    payload: { receipt },
+    createdAt: now,
+    idempotencyKey: "invalid-aggregate" as IdempotencyKey,
+    attemptCount: 0,
+  };
+
+  const result = await ingestSyncEvent(invalidEvent, apiRepository);
+  assert(result.accepted === false, "Invalid aggregate type should be rejected");
+  assert(
+    result.reason === "invalid_aggregate_type",
+    "Invalid aggregate rejection reason should be explicit"
+  );
+}
+
 async function testFlushOutbox(): Promise<void> {
   const receipt = calculateReceipt(fiscalInput);
   const pending: SyncEvent[] = [
@@ -282,6 +358,8 @@ async function main(): Promise<void> {
   await testCompleteSaleContracts();
   await testFinalizeCashSaleWritesLocalDataAndOutbox();
   await testIdempotencyGuard();
+  await testApiSyncIngestionPersistsSaleEvents();
+  await testApiSyncRejectsInvalidAggregate();
   await testFlushOutbox();
   console.log("All tests passed.");
 }

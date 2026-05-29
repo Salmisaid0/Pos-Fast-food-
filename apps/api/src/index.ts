@@ -1,1 +1,8 @@
-export { acceptSyncEvent } from "./sync";
+export {
+  acceptSyncEvent,
+  ingestSyncEvent,
+  ingestSyncEvents,
+  InMemorySyncIngestionRepository,
+  type SyncEventAcceptance,
+  type SyncIngestionRepository,
+} from "./sync";
