@@ -13,6 +13,7 @@ import {
   createSyncModule,
   ingestSyncEvents,
   InMemorySyncIngestionRepository,
+  FileSyncIngestionRepository,
 } from "@apps/api";
 import {
   addProductToCart,
@@ -675,6 +676,67 @@ async function testApiSyncIngestionPersistsSaleEvents(): Promise<void> {
   );
 }
 
+async function testFileSyncIngestionRepositoryPersistsAcrossRestart(): Promise<void> {
+  const directory = await mkdtemp(join(tmpdir(), "pos-api-sync-"));
+  const storePath = join(directory, "sync-store.json");
+
+  try {
+    const localRepositories = new InMemoryLocalSaleRepositories();
+    const apiRepository = new FileSyncIngestionRepository(storePath);
+    const sale = await finalizeCashSale(
+      {
+        orderId: "api-file-order-1" as OrderId,
+        paymentId: "api-file-payment-1" as PaymentId,
+        receiptId: "api-file-receipt-1" as ReceiptId,
+        receiptNumber: "R-API-FILE-000001" as ReceiptNumber,
+        localSequence: 21,
+        items: fiscalInput.lines,
+        receivedDZD: 1200,
+        finalizedAt: now,
+        printer: {
+          printerJobId: "api-file-printer-job-1" as PrinterJobId,
+          targetPrinterId: printerId,
+        },
+      },
+      localRepositories
+    );
+
+    const results = await ingestSyncEvents(sale.syncEvents, apiRepository);
+    const restartedRepository = new FileSyncIngestionRepository(storePath);
+    const duplicate = await ingestSyncEvent(sale.syncEvents[0]!, restartedRepository);
+    const store = await restartedRepository.readStore();
+
+    assert(
+      results.every((result) => result.accepted),
+      "File API repository should ingest events"
+    );
+    assert(
+      (await restartedRepository.getOrder(sale.order.id))?.id === sale.order.id,
+      "File API repository should persist orders across restart"
+    );
+    assert(
+      (await restartedRepository.getCashPayment(sale.payment.id))?.id === sale.payment.id,
+      "File API repository should persist cash payments across restart"
+    );
+    assert(
+      (await restartedRepository.getReceipt(sale.receipt.id))?.id === sale.receipt.id,
+      "File API repository should persist receipts across restart"
+    );
+    assert(
+      sale.printerJob !== undefined &&
+        (await restartedRepository.getPrinterJob(sale.printerJob.id))?.id === sale.printerJob.id,
+      "File API repository should persist printer jobs across restart"
+    );
+    assert(
+      duplicate.accepted === false && duplicate.reason === "duplicate_idempotency_key",
+      "File API repository should persist idempotency keys across restart"
+    );
+    assert(store.printerJobs.length === 1, "File API repository should queue print job once");
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
 async function testApiSyncRejectsInvalidAggregate(): Promise<void> {
   const receipt = calculateReceipt(fiscalInput);
   const apiRepository = new InMemorySyncIngestionRepository();
@@ -737,6 +799,7 @@ async function testApiRuntimeConfigReadsEnvironment(): Promise<void> {
   const config = readApiRuntimeConfig({
     API_PORT: "4101",
     API_HOST: "127.0.0.1",
+    API_SYNC_STORE_PATH: "/tmp/pos-api-sync-store.json",
   } as Record<string, string | undefined>);
   const fallbackConfig = readApiRuntimeConfig({ PORT: "4102" } as Record<
     string,
@@ -745,6 +808,10 @@ async function testApiRuntimeConfigReadsEnvironment(): Promise<void> {
 
   assert(config.port === 4101, "API runtime config should read API_PORT");
   assert(config.host === "127.0.0.1", "API runtime config should read API_HOST");
+  assert(
+    config.syncStorePath === "/tmp/pos-api-sync-store.json",
+    "API runtime config should read API_SYNC_STORE_PATH"
+  );
   assert(fallbackConfig.port === 4102, "API runtime config should fall back to PORT");
 }
 
@@ -1640,6 +1707,7 @@ async function main(): Promise<void> {
   await testFinalizeCashSaleWritesLocalDataAndOutbox();
   await testIdempotencyGuard();
   await testApiSyncIngestionPersistsSaleEvents();
+  await testFileSyncIngestionRepositoryPersistsAcrossRestart();
   await testApiSyncRejectsInvalidAggregate();
   await testNestSyncControllerAndModuleIngestEvents();
   await testApiRuntimeConfigReadsEnvironment();
