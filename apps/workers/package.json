@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "dev": "echo \"workers dev placeholder (NestJS scaffold pending)\"",
+    "dev": "node ../../../dist/apps/workers/main.js",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc -b --pretty false",
     "test": "echo \"workers covered by root smoke tests\""

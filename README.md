@@ -76,3 +76,7 @@ for pending, syncing, synced, failed, and offline states.
 ## API durable sync persistence
 
 `apps/api` includes `FileSyncIngestionRepository` for development and pilot persistence before PostgreSQL is introduced. Set `API_SYNC_STORE_PATH` to persist synced orders, cash payments, receipts, printer jobs, and processed idempotency keys across API restarts.
+
+## Print worker runtime
+
+`apps/workers` can now bootstrap a print worker process with `bootstrapPrintWorker`. Configure `PRINT_QUEUE_BACKEND` (`redis` or `file`), `PRINT_JOBS_FILE_PATH` for local file queues, Redis variables for production queues, and `PRINTERS_JSON` for ESC/POS TCP printer endpoints.

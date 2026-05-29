@@ -52,6 +52,9 @@ import {
   createArabicCodePageTextEncoder,
   createTcpEscPosPrinterTransportFromDomainPrinters,
   readRedisPrintQueueRuntimeConfig,
+  readPrintWorkerRuntimeConfig,
+  createPrintWorkerRuntime,
+  readRuntimePrinters,
   drainPrintQueue,
   processNextPrintJob,
   processPrintJob,
@@ -1227,6 +1230,73 @@ async function testRedisPrintQueueRuntimeConfigReadsEnvironment(): Promise<void>
   );
 }
 
+async function testPrintWorkerRuntimeConfigReadsFileQueueAndPrinters(): Promise<void> {
+  const config = readPrintWorkerRuntimeConfig({
+    PRINT_QUEUE_BACKEND: "file",
+    PRINT_JOBS_FILE_PATH: "/tmp/pos-print-jobs.json",
+    PRINT_WORKER_INTERVAL_MS: "250",
+    PRINT_WORKER_BATCH_SIZE: "10",
+    PRINT_WORKER_MAX_ATTEMPTS: "4",
+    PRINTERS_JSON: JSON.stringify([
+      {
+        id: "printer-receipt-1",
+        host: "192.168.1.50",
+        port: 9100,
+        timeoutMs: 1500,
+        codePageCommand: 22,
+        charactersPerLine: 42,
+        rtl: true,
+      },
+    ]),
+  } as Record<string, string | undefined>);
+
+  assert(config.queueBackend === "file", "Worker runtime should read file queue backend");
+  assert(
+    config.fileQueuePath === "/tmp/pos-print-jobs.json",
+    "Worker runtime should read file path"
+  );
+  assert(config.intervalMs === 250, "Worker runtime should parse interval");
+  assert(config.batchSize === 10, "Worker runtime should parse batch size");
+  assert(config.maxAttempts === 4, "Worker runtime should parse max attempts");
+  assert(config.printers[0]?.host === "192.168.1.50", "Worker runtime should parse printer host");
+  assert(config.printers[0]?.rtl === true, "Worker runtime should parse RTL printer option");
+}
+
+async function testPrintWorkerRuntimeCreatesFileBackedLoop(): Promise<void> {
+  const directory = await mkdtemp(join(tmpdir(), "pos-worker-runtime-"));
+  const fileQueuePath = join(directory, "print-jobs.json");
+
+  try {
+    const runtime = createPrintWorkerRuntime({
+      queueBackend: "file",
+      fileQueuePath,
+      intervalMs: 5_000,
+      batchSize: 5,
+      maxAttempts: 3,
+      printers: [
+        {
+          id: printerId,
+          host: "127.0.0.1",
+          port: 9100,
+        },
+      ],
+    });
+
+    assert(runtime.loop instanceof PrintWorkerLoop, "Worker runtime should create a loop");
+    assert(!runtime.loop.running, "Worker runtime should not auto-start during construction");
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
+async function testRuntimePrintersRejectInvalidConfig(): Promise<void> {
+  expectThrows(
+    Error,
+    () => readRuntimePrinters(JSON.stringify([{ id: "printer-without-host", port: 9100 }])),
+    "Runtime printer parser should reject missing host"
+  );
+}
+
 async function testPrintWorkerLoopRunOnceDrainsQueue(): Promise<void> {
   const receipt = calculateReceipt(fiscalInput);
   const repository = new InMemoryPrintJobRepository([
@@ -1720,6 +1790,9 @@ async function main(): Promise<void> {
   await testRedisPrintJobRepositoryDrainsQueue();
   await testIoredisPrintJobClientAdapterDrainsQueue();
   await testRedisPrintQueueRuntimeConfigReadsEnvironment();
+  await testPrintWorkerRuntimeConfigReadsFileQueueAndPrinters();
+  await testPrintWorkerRuntimeCreatesFileBackedLoop();
+  await testRuntimePrintersRejectInvalidConfig();
   await testPrintWorkerLoopRunOnceDrainsQueue();
   await testPrintWorkerLoopRecordsOperationalControls();
   await testPrintWorkerLoopGracefulShutdown();

@@ -53,3 +53,12 @@ export {
   type ProcessPrintJobOptions,
   type ProcessPrintJobResult,
 } from "./print-job";
+export { bootstrapPrintWorker } from "./main";
+export {
+  createPrintWorkerRuntime,
+  readPrintWorkerRuntimeConfig,
+  readRuntimePrinters,
+  type PrintQueueBackend,
+  type PrintWorkerRuntime,
+  type PrintWorkerRuntimeConfig,
+} from "./worker-runtime-config";
