@@ -11,6 +11,8 @@ import {
 } from "@apps/pos-desktop";
 import {
   InMemoryPrintJobRepository,
+  drainPrintQueue,
+  processNextPrintJob,
   processPrintJob,
   RecordingPrinterTransport,
   type PrinterTransport,
@@ -404,6 +406,73 @@ async function testWorkerMarksFailedAndDeadLetterPrintJobs(): Promise<void> {
   assert(secondSavedJob?.attemptCount === 2, "Dead-lettered print job should record final attempt");
 }
 
+async function testWorkerClaimsNextQueuedPrintJob(): Promise<void> {
+  const receipt = calculateReceipt(fiscalInput);
+  const queuedJob: PrinterJob = {
+    id: "printer-job-claim" as PrinterJobId,
+    orderId,
+    receiptId,
+    type: "RECEIPT",
+    targetPrinterId: printerId,
+    payload: receipt,
+    status: "QUEUED",
+    attemptCount: 0,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const repository = new InMemoryPrintJobRepository([queuedJob]);
+  const transport = new RecordingPrinterTransport();
+  const result = await processNextPrintJob(repository, transport, { now });
+  const savedJob = await repository.getById(queuedJob.id);
+  const idleResult = await processNextPrintJob(repository, transport, { now });
+
+  assert(result.ok === true, "processNextPrintJob should process the queued job");
+  assert(result.status === "SENT", "Claimed queued job should be sent");
+  assert(savedJob?.status === "SENT", "Claimed job should be persisted as sent");
+  assert(transport.sentJobs.length === 1, "Claimed job should be delivered once");
+  assert(idleResult.status === "IDLE", "Worker should become idle when no jobs remain");
+}
+
+async function testWorkerDrainsPrintQueue(): Promise<void> {
+  const receipt = calculateReceipt(fiscalInput);
+  const firstJob: PrinterJob = {
+    id: "printer-job-drain-1" as PrinterJobId,
+    orderId,
+    receiptId,
+    type: "RECEIPT",
+    targetPrinterId: printerId,
+    payload: receipt,
+    status: "QUEUED",
+    attemptCount: 0,
+    createdAt: "2026-01-01T00:00:00.000Z" as IsoDateTimeString,
+    updatedAt: now,
+  };
+  const secondJob: PrinterJob = {
+    ...firstJob,
+    id: "printer-job-drain-2" as PrinterJobId,
+    createdAt: "2026-01-01T00:00:01.000Z" as IsoDateTimeString,
+  };
+
+  const repository = new InMemoryPrintJobRepository([firstJob, secondJob]);
+  const transport = new RecordingPrinterTransport();
+  const result = await drainPrintQueue(repository, transport, { now, limit: 10 });
+
+  assert(result.attemptedCount === 2, "Drain should attempt every queued job");
+  assert(result.sentCount === 2, "Drain should send all healthy queued jobs");
+  assert(result.failedCount === 0, "Drain should not record failures for healthy transport");
+  assert(result.deadLetteredCount === 0, "Drain should not dead-letter healthy jobs");
+  assert(transport.sentJobs[0]?.id === firstJob.id, "Drain should process oldest print job first");
+  assert(
+    (await repository.getById(firstJob.id))?.status === "SENT",
+    "First drained job should be sent"
+  );
+  assert(
+    (await repository.getById(secondJob.id))?.status === "SENT",
+    "Second drained job should be sent"
+  );
+}
+
 async function testFlushOutboxHandlesFailureAndRetry(): Promise<void> {
   const repositories = new InMemoryLocalSaleRepositories();
   const sale = await finalizeCashSale(
@@ -557,6 +626,8 @@ async function main(): Promise<void> {
   await testApiSyncRejectsInvalidAggregate();
   await testWorkerProcessesPrintJobSuccessfully();
   await testWorkerMarksFailedAndDeadLetterPrintJobs();
+  await testWorkerClaimsNextQueuedPrintJob();
+  await testWorkerDrainsPrintQueue();
   await testFlushOutboxHandlesFailureAndRetry();
   await testFlushOutboxCanPushToApiIngestion();
   await testFlushOutbox();
