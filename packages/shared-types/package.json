@@ -1,0 +1,13 @@
+{
+  "name": "@packages/shared-types",
+  "version": "0.1.0",
+  "private": true,
+  "main": "../../../dist/packages/shared-types/index.js",
+  "types": "../../../dist/packages/shared-types/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc -b --pretty false",
+    "test": "echo \"shared-types covered by root smoke tests\""
+  }
+}
