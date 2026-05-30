@@ -3,14 +3,19 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+ codex/develop-offline-first-fast-food-pos-system-q845bw
       "outputs": ["../../dist/**"],
       "cache": false
+
+      "outputs": ["dist/**"]
+ main
     },
     "dev": {
       "cache": false,
       "persistent": true
     },
     "lint": {
+ codex/develop-offline-first-fast-food-pos-system-q845bw
       "dependsOn": ["^lint"],
       "outputs": []
     },
@@ -21,6 +26,15 @@
     "test": {
       "dependsOn": ["build", "^test"],
       "outputs": []
+
+      "dependsOn": ["^lint"]
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"]
+    },
+    "test": {
+      "dependsOn": ["build", "^test"]
+ main
     }
   }
 }

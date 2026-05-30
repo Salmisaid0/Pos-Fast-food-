@@ -12,7 +12,11 @@ This first execution plan focuses only on:
 1. Single-branch operations
 2. Cash-first checkout
 3. Offline-first reliability
+ codex/develop-offline-first-fast-food-pos-system-q845bw
 4. Fiscal receipt generation (VAT disabled for current scope)
+
+4. Fiscal receipt generation (9% VAT)
+ main
 5. Reliable server-side printing
 
 ---
@@ -27,7 +31,11 @@ This first execution plan focuses only on:
 - Cash payment with automatic change calculation (DA)
 - Local offline persistence in POS desktop app
 - Sync outbox from local app to server when online
+ codex/develop-offline-first-fast-food-pos-system-q845bw
 - Receipt generation with VAT-disabled fiscal logic
+
+- Receipt generation with 9% VAT logic
+ main
 - Print job queue and thermal printer worker (ESC/POS)
 - Basic manager view for same branch (sales list, totals)
 
@@ -103,7 +111,11 @@ This first execution plan focuses only on:
 - Idempotent order create endpoint
 - Fiscal engine v1:
   - subtotal
+ codex/develop-offline-first-fast-food-pos-system-q845bw
   - VAT-disabled total computation
+
+  - 9% VAT computation
+ main
   - total + receipt payload
 - Sync API endpoint to consume outbox events
 
@@ -190,7 +202,11 @@ This first execution plan focuses only on:
 
 ### Epic E — Receipt & Printing
 
+ codex/develop-offline-first-fast-food-pos-system-q845bw
 - Implement fiscal receipt DTO (VAT disabled)
+
+- Implement fiscal receipt DTO (9% VAT)
+ main
 - Build `POST /print-job` flow
 - Implement print worker retry behavior
 
@@ -212,7 +228,11 @@ This first execution plan focuses only on:
 
 - Unit tests:
   - cash change calculator
+ codex/develop-offline-first-fast-food-pos-system-q845bw
   - VAT-disabled fiscal calculator
+
+  - 9% VAT calculator
+ main
   - sync retry/backoff logic
 - Integration tests:
   - outbox sync endpoint idempotency

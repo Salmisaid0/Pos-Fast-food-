@@ -2,6 +2,7 @@
   "name": "@apps/api",
   "version": "0.1.0",
   "private": true,
+ codex/develop-offline-first-fast-food-pos-system-q845bw
   "main": "../../../dist/apps/api/index.js",
   "types": "../../../dist/apps/api/index.d.ts",
   "dependencies": {
@@ -18,5 +19,13 @@
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc -b --pretty false",
     "test": "echo \"api covered by root smoke tests\""
+
+  "scripts": {
+    "build": "tsc -p ../../tsconfig.json --noEmit",
+    "dev": "echo \"api dev placeholder (NestJS scaffold pending)\"",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc -p ../../tsconfig.json --noEmit",
+    "test": "echo \"no tests in app yet\""
+ main
   }
 }

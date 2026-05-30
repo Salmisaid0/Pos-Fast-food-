@@ -2,13 +2,18 @@
   "name": "pos-fast-food",
   "private": true,
   "version": "0.1.0",
+ codex/develop-offline-first-fast-food-pos-system-q845bw
   "packageManager": "npm@11.4.2",
+
+  "packageManager": "npm@10",
+ main
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
     "build": "turbo run build",
+ codex/develop-offline-first-fast-food-pos-system-q845bw
     "clean": "rm -rf dist .turbo coverage",
     "dev": "turbo run dev --parallel",
     "lint": "turbo run lint",
@@ -23,6 +28,17 @@
   "devDependencies": {
     "@eslint/js": "^9.39.4",
     "@types/node": "^25.9.1",
+
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
+    "prepare": "husky",
+    "check": "npm run lint && npm run typecheck && npm run test"
+  },
+  "devDependencies": {
+ main
     "@typescript-eslint/eslint-plugin": "^8.33.1",
     "@typescript-eslint/parser": "^8.33.1",
     "eslint": "^9.28.0",
@@ -34,11 +50,19 @@
     "typescript": "^5.8.3"
   },
   "lint-staged": {
+ codex/develop-offline-first-fast-food-pos-system-q845bw
     "*.{ts,tsx,js,cjs}": [
       "eslint --fix",
       "prettier --write"
     ],
     "*.{json,md,yml,yaml}": [
+
+    "*.{ts,tsx,js}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+ main
       "prettier --write"
     ]
   }

@@ -2,6 +2,7 @@
   "name": "@apps/pos-desktop",
   "version": "0.1.0",
   "private": true,
+ codex/develop-offline-first-fast-food-pos-system-q845bw
   "main": "../../../dist/apps/pos-desktop/index.js",
   "types": "../../../dist/apps/pos-desktop/index.d.ts",
   "dependencies": {
@@ -23,5 +24,13 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
     "vite": "^8.0.14"
+
+  "scripts": {
+    "build": "tsc -p ../../tsconfig.json --noEmit",
+    "dev": "echo \"pos-desktop dev placeholder (Tauri+React scaffold pending)\"",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc -p ../../tsconfig.json --noEmit",
+    "test": "echo \"no tests in app yet\""
+ main
   }
 }

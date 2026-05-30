@@ -1,3 +1,4 @@
+ codex/develop-offline-first-fast-food-pos-system-q845bw
 import { Buffer } from "node:buffer";
 import { mkdtemp, rm } from "node:fs/promises";
 import { createServer, type AddressInfo } from "node:net";
@@ -110,10 +111,18 @@ import type {
   SyncEventId,
 } from "@packages/shared-types";
 
+import { calculateCashPayment } from "../apps/pos-desktop/src/cash";
+import { calculateReceipt, FISCAL_ENGINE_VERSION } from "../packages/fiscal-engine/src";
+import { flushOutbox, LocalOutboxRepository, RemoteSyncApi } from "../packages/sync-engine/src";
+import { acceptSyncEvent } from "../apps/api/src/sync";
+import { SyncEvent } from "../packages/shared-types/src";
+ main
+
 function assert(condition: boolean, message: string): void {
   if (!condition) throw new Error(message);
 }
 
+ codex/develop-offline-first-fast-food-pos-system-q845bw
 function expectThrows(
   errorType: new (...args: never[]) => Error,
   action: () => unknown,
@@ -891,6 +900,27 @@ async function testIdempotencyGuard(): Promise<void> {
     createdAt: now,
     idempotencyKey: "idem-1" as IdempotencyKey,
     attemptCount: 0,
+
+async function testCashCalculation(): Promise<void> {
+  const payment = calculateCashPayment("order-1", 1000, 1200);
+  assert(payment.changeDZD === 200, "Cash change should be 200");
+}
+
+async function testFiscalCalculation(): Promise<void> {
+  const receipt = calculateReceipt("order-1", 1000, "2026-01-01T00:00:00.000Z");
+  assert(receipt.vatAmountDZD === 90, "VAT should be 90 for subtotal 1000");
+  assert(receipt.totalDZD === 1090, "Total should be 1090");
+  assert(receipt.fiscalVersion === FISCAL_ENGINE_VERSION, "Fiscal version should be v1");
+}
+
+async function testIdempotencyGuard(): Promise<void> {
+  const event: SyncEvent = {
+    id: "1",
+    type: "ORDER_CREATED",
+    payload: { orderId: "o-1" },
+    createdAt: new Date().toISOString(),
+    idempotencyKey: "idem-1",
+ main
   };
 
   const first = acceptSyncEvent(event);
@@ -899,6 +929,7 @@ async function testIdempotencyGuard(): Promise<void> {
   assert(second.accepted === false, "Duplicate event must be rejected");
 }
 
+ codex/develop-offline-first-fast-food-pos-system-q845bw
 async function testApiSyncIngestionPersistsSaleEvents(): Promise<void> {
   const localRepositories = new InMemoryLocalSaleRepositories();
   const apiRepository = new InMemorySyncIngestionRepository();
@@ -2007,6 +2038,12 @@ async function testFlushOutbox(): Promise<void> {
       idempotencyKey: "k1" as IdempotencyKey,
       attemptCount: 0,
     },
+
+async function testFlushOutbox(): Promise<void> {
+  const pending: SyncEvent[] = [
+    { id: "1", type: "ORDER_CREATED", payload: {}, createdAt: "t", idempotencyKey: "k1" },
+    { id: "2", type: "CASH_PAYMENT_RECORDED", payload: {}, createdAt: "t", idempotencyKey: "k2" },
+ main
   ];
   const synced = new Set<string>();
 
@@ -2018,9 +2055,12 @@ async function testFlushOutbox(): Promise<void> {
     async markSynced(eventId: string) {
       synced.add(eventId);
     },
+ codex/develop-offline-first-fast-food-pos-system-q845bw
     async markFailed() {
       throw new Error("markFailed should not be called in successful flush test");
     },
+
+ main
   };
 
   const api: RemoteSyncApi = {
@@ -2030,6 +2070,7 @@ async function testFlushOutbox(): Promise<void> {
   };
 
   const count = await flushOutbox(outbox, api, 50);
+ codex/develop-offline-first-fast-food-pos-system-q845bw
   assert(count === 1, "flushOutbox should sync 1 event");
   assert(synced.has("event-2"), "Event should be marked synced");
 }
@@ -2088,11 +2129,27 @@ async function main(): Promise<void> {
   await testFlushOutboxHandlesFailureAndRetry();
   await testFlushOutboxCanPushToApiIngestion();
   await testFlushOutboxEnqueuesPrinterJobForWorkerQueue();
+
+  assert(count === 2, "flushOutbox should sync 2 events");
+  assert(synced.has("1") && synced.has("2"), "Both events should be marked synced");
+}
+
+async function main(): Promise<void> {
+  await testCashCalculation();
+  await testFiscalCalculation();
+  await testIdempotencyGuard();
+ main
   await testFlushOutbox();
   console.log("All tests passed.");
 }
 
+ codex/develop-offline-first-fast-food-pos-system-q845bw
 main().catch((error: unknown) => {
   console.error(error);
   process.exitCode = 1;
+
+main().catch((error) => {
+  console.error(error);
+  throw error;
+ main
 });

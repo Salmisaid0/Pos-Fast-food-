@@ -1,4 +1,5 @@
 {
+ codex/develop-offline-first-fast-food-pos-system-q845bw
   "files": [],
   "references": [
     { "path": "packages/shared-types" },
@@ -9,4 +10,17 @@
     { "path": "apps/workers" },
     { "path": "tests" }
   ]
+
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "dist",
+    "rootDir": "."
+  },
+  "include": ["apps/**/*.ts", "packages/**/*.ts", "tests/**/*.ts"]
+ main
 }
