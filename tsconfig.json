@@ -1,4 +1,16 @@
 {
+ codex/develop-offline-first-fast-food-pos-system-q845bw
+  "files": [],
+  "references": [
+    { "path": "packages/shared-types" },
+    { "path": "packages/fiscal-engine" },
+    { "path": "packages/sync-engine" },
+    { "path": "apps/api" },
+    { "path": "apps/pos-desktop" },
+    { "path": "apps/workers" },
+    { "path": "tests" }
+  ]
+
   "compilerOptions": {
     "target": "ES2020",
     "module": "CommonJS",
@@ -10,4 +22,5 @@
     "rootDir": "."
   },
   "include": ["apps/**/*.ts", "packages/**/*.ts", "tests/**/*.ts"]
+ main
 }
