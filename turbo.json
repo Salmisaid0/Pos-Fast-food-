@@ -3,14 +3,27 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+ codex/develop-offline-first-fast-food-pos-system-rdcuxz
       "outputs": ["../../dist/**"],
       "cache": false
+
+ codex/develop-offline-first-fast-food-pos-system-q845bw
+      "outputs": ["../../dist/**"],
+      "cache": false
+
+      "outputs": ["dist/**"]
+ main
+ main
     },
     "dev": {
       "cache": false,
       "persistent": true
     },
     "lint": {
+ codex/develop-offline-first-fast-food-pos-system-rdcuxz
+
+ codex/develop-offline-first-fast-food-pos-system-q845bw
+ main
       "dependsOn": ["^lint"],
       "outputs": []
     },
@@ -21,6 +34,18 @@
     "test": {
       "dependsOn": ["build", "^test"],
       "outputs": []
+ codex/develop-offline-first-fast-food-pos-system-rdcuxz
+
+
+      "dependsOn": ["^lint"]
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"]
+    },
+    "test": {
+      "dependsOn": ["build", "^test"]
+ main
+ main
     }
   }
 }

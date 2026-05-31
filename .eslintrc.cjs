@@ -3,6 +3,10 @@ module.exports = {
   parser: "@typescript-eslint/parser",
   parserOptions: {
     ecmaVersion: "latest",
+ codex/develop-offline-first-fast-food-pos-system-rdcuxz
+
+ codex/develop-offline-first-fast-food-pos-system-q845bw
+ main
     sourceType: "module",
   },
   plugins: ["@typescript-eslint"],
@@ -58,4 +62,15 @@ module.exports = {
       },
     },
   ],
+ codex/develop-offline-first-fast-food-pos-system-rdcuxz
+    sourceType: "module"
+  },
+  plugins: ["@typescript-eslint"],
+  extends: ["eslint:recommended", "plugin:@typescript-eslint/recommended", "prettier"],
+  ignorePatterns: ["dist", "node_modules"],
+  rules: {
+    "@typescript-eslint/no-explicit-any": "off"
+  }
+ main
+ main
 };

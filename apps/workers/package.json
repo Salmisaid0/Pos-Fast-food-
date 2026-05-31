@@ -2,6 +2,10 @@
   "name": "@apps/workers",
   "version": "0.1.0",
   "private": true,
+ codex/develop-offline-first-fast-food-pos-system-rdcuxz
+
+ codex/develop-offline-first-fast-food-pos-system-q845bw
+ main
   "main": "../../../dist/apps/workers/index.js",
   "types": "../../../dist/apps/workers/index.d.ts",
   "dependencies": {
@@ -14,5 +18,16 @@
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc -b --pretty false",
     "test": "echo \"workers covered by root smoke tests\""
+ codex/develop-offline-first-fast-food-pos-system-rdcuxz
+
+
+  "scripts": {
+    "build": "tsc -p ../../tsconfig.json --noEmit",
+    "dev": "echo \"workers dev placeholder (NestJS scaffold pending)\"",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc -p ../../tsconfig.json --noEmit",
+    "test": "echo \"no tests in app yet\""
+ main
+ main
   }
 }

@@ -26,6 +26,7 @@ npm run dev -w @apps/pos-desktop
 - `pre-commit`: runs `lint-staged` for fast formatting/linting of staged files.
 - `pre-push`: runs `npm run typecheck && npm run test`.
 
+ codex/develop-offline-first-fast-food-pos-system-rdcuxz
 ## Conflict marker guard
 
 If a pull request merge leaves conflict markers such as `<<<<<<<`, `=======`, `>>>>>>>`, or
@@ -33,6 +34,8 @@ Codex branch labels in tracked source files, `npm run check` now fails before bu
 Run `npm run verify:no-conflict-markers` after resolving conflicts and before reinstalling dependencies so
 broken source files do not get copied into workspace symlinks under `node_modules`.
 
+
+ main
 ## Build artifact policy
 
 Do not commit generated output. If `dist/` is created locally, it should remain untracked. The

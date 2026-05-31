@@ -1,3 +1,7 @@
+ codex/develop-offline-first-fast-food-pos-system-rdcuxz
+
+ codex/develop-offline-first-fast-food-pos-system-q845bw
+ main
 import type { CashPayment, IsoDateTimeString, OrderId, PaymentId } from "@packages/shared-types";
 
 export interface CalculateCashPaymentInput {
@@ -26,5 +30,29 @@ export function calculateCashPayment(input: CalculateCashPaymentInput): CashPaym
     changeDZD: Math.round((input.receivedDZD - input.amountDueDZD) * 100) / 100,
     paidAt: input.paidAt ?? timestamp,
     createdAt: input.createdAt ?? timestamp,
+ codex/develop-offline-first-fast-food-pos-system-rdcuxz
+
+
+import { CashPayment } from "../../../packages/shared-types/src";
+
+export function calculateCashPayment(
+  orderId: string,
+  totalDZD: number,
+  receivedDZD: number,
+  paidAt = new Date().toISOString()
+): CashPayment {
+  if (receivedDZD < totalDZD) {
+    throw new Error("Received cash is less than order total.");
+  }
+
+  return {
+    orderId,
+    method: "CASH",
+    receivedDZD,
+    totalDZD,
+    changeDZD: Math.round((receivedDZD - totalDZD) * 100) / 100,
+    paidAt,
+ main
+ main
   };
 }

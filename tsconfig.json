@@ -1,4 +1,8 @@
 {
+ codex/develop-offline-first-fast-food-pos-system-rdcuxz
+
+ codex/develop-offline-first-fast-food-pos-system-q845bw
+ main
   "files": [],
   "references": [
     { "path": "packages/shared-types" },
@@ -9,4 +13,20 @@
     { "path": "apps/workers" },
     { "path": "tests" }
   ]
+ codex/develop-offline-first-fast-food-pos-system-rdcuxz
+
+
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "dist",
+    "rootDir": "."
+  },
+  "include": ["apps/**/*.ts", "packages/**/*.ts", "tests/**/*.ts"]
+ main
+ main
 }

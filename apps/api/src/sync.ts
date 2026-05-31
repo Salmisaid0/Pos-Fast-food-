@@ -1,3 +1,7 @@
+ codex/develop-offline-first-fast-food-pos-system-rdcuxz
+
+ codex/develop-offline-first-fast-food-pos-system-q845bw
+ main
 import type { CashPayment, Order, PrinterJob, Receipt, SyncEvent } from "@packages/shared-types";
 
 export type SyncEventRejectReason =
@@ -78,6 +82,16 @@ export function acceptSyncEvent(event: SyncEvent): SyncEventAcceptance {
   const validationResult = validateEventShape(event);
   if (!validationResult.accepted) return validationResult;
 
+ codex/develop-offline-first-fast-food-pos-system-rdcuxz
+
+
+import { SyncEvent } from "../../../packages/shared-types/src";
+
+const processedIdempotencyKeys = new Set<string>();
+
+export function acceptSyncEvent(event: SyncEvent): { accepted: boolean; reason?: string } {
+ main
+ main
   if (processedIdempotencyKeys.has(event.idempotencyKey)) {
     return { accepted: false, reason: "duplicate_idempotency_key" };
   }
@@ -85,6 +99,10 @@ export function acceptSyncEvent(event: SyncEvent): SyncEventAcceptance {
   processedIdempotencyKeys.add(event.idempotencyKey);
   return { accepted: true };
 }
+ codex/develop-offline-first-fast-food-pos-system-rdcuxz
+
+ codex/develop-offline-first-fast-food-pos-system-q845bw
+ main
 
 export async function ingestSyncEvent(
   event: SyncEvent,
@@ -167,3 +185,8 @@ function validateAggregate(
 
   return { accepted: true };
 }
+ codex/develop-offline-first-fast-food-pos-system-rdcuxz
+
+
+ main
+ main
