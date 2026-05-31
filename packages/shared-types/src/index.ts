@@ -1,4 +1,7 @@
+ codex/develop-offline-first-fast-food-pos-system-rdcuxz
+
  codex/develop-offline-first-fast-food-pos-system-q845bw
+ main
 export type Brand<TValue, TBrand extends string> = TValue & { readonly __brand: TBrand };
 
 export type EntityId = Brand<string, "EntityId">;
@@ -203,7 +206,8 @@ export interface PrinterJob {
   createdAt: IsoDateTimeString;
   updatedAt: IsoDateTimeString;
   lastError?: string;
-=======
+ codex/develop-offline-first-fast-food-pos-system-rdcuxz
+
 export type CurrencyDZD = number;
 
 export interface OrderItem {
@@ -257,5 +261,6 @@ export interface PrinterJob {
   content: string;
   status: "QUEUED" | "SENT" | "FAILED";
   createdAt: string;
+ main
  main
 }

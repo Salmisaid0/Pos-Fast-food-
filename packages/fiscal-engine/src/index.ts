@@ -1,4 +1,7 @@
+ codex/develop-offline-first-fast-food-pos-system-rdcuxz
+
  codex/develop-offline-first-fast-food-pos-system-q845bw
+ main
 import type { FiscalReceiptInput, FiscalVersion, Receipt, VatRate } from "@packages/shared-types";
 
 export const FISCAL_ENGINE_VERSION: FiscalVersion = "v1";
@@ -111,6 +114,8 @@ function assertFiniteNumber(value: number, fieldName: string): void {
     throw new InvalidFiscalInputError(`${fieldName} must be a finite number.`);
   }
 }
+ codex/develop-offline-first-fast-food-pos-system-rdcuxz
+
 
 import { Receipt } from "../../shared-types/src";
 
@@ -135,4 +140,5 @@ export function calculateReceipt(orderId: string, subtotalDZD: number, generated
     generatedAt,
   };
 }
+ main
  main

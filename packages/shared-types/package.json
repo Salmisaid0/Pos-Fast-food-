@@ -2,7 +2,10 @@
   "name": "@packages/shared-types",
   "version": "0.1.0",
   "private": true,
+ codex/develop-offline-first-fast-food-pos-system-rdcuxz
+
  codex/develop-offline-first-fast-food-pos-system-q845bw
+ main
   "main": "../../../dist/packages/shared-types/index.js",
   "types": "../../../dist/packages/shared-types/index.d.ts",
   "scripts": {
@@ -10,6 +13,8 @@
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc -b --pretty false",
     "test": "echo \"shared-types covered by root smoke tests\""
+ codex/develop-offline-first-fast-food-pos-system-rdcuxz
+
 
   "main": "src/index.ts",
   "scripts": {
@@ -17,6 +22,7 @@
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc -p ../../tsconfig.json --noEmit",
     "test": "echo \"no tests in package yet\""
+ main
  main
   }
 }
